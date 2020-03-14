@@ -22,7 +22,14 @@ wyzdrowienia <- wyzdrowienia %>%
 
 covid <- left_join(chorzy, select(ofiary, 1,7), by="indeks")
 covid <- left_join(covid, select(wyzdrowienia, 1,7), by="indeks")
-  
-  # dzienne zachorowania (to na później, bo liczba chorych zmniejsza się też przez zgony)
-  #arrange(indeks) %>%
-  #mutate(nowe.zachorowania = liczba.zachorowan - lag(liczba.zachorowan, default = first(liczba.zachorowan)))
+
+covid <- covid %>%
+  mutate(nowe.zachorowania = liczba.zachorowan - lag(liczba.zachorowan, default = first(liczba.zachorowan)))%>%
+  mutate(nowe.zachorowania = if_else(nowe.zachorowania<0, paste(liczba.zachorowan), paste(nowe.zachorowania))) %>%
+  mutate(smiertelnosc = liczba.ofiar/liczba.zachorowan) %>%
+  filter(liczba.zachorowan>0)
+
+# dla Power BI
+save(covid, file = "covid.Rda")
+load(file = "E:/R/COVID-19/covid.Rda")
+

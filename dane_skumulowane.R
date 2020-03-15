@@ -143,14 +143,33 @@ covid <- covid %>%
          Country.Region = gsub("Curacao", "Curaçao", Country.Region),
          Country.Region = gsub("USA", "United States", Country.Region))
 
-#zostawiam do testowania czy są NA
+
 covid <- left_join(covid, nazwy, by="Country.Region")
-covid <- select(covid, -2)
+covid <- covid %>% 
+  select(-2) %>%
+  mutate(grupa = if_else(Państwo=="Polska"|Państwo=="Słowacja"|Państwo=="Węgry"|Państwo=="Czechy", paste("V4"),
+                         if_else(Państwo=="Ukraina"|Państwo=="Białoruś"|Państwo=="Mołdawia", paste("BUM"),
+                                 if_else(Państwo=="Litwa"|Państwo=="Łotwa"|Państwo=="Estonia", paste("P. Bałtyckie"),
+                                         if_else(Państwo=="Norwegia"|Państwo=="Szwecja"|Państwo=="Finlandia"|Państwo=="Dania", paste("Skandynawia"),
+                                                 if_else(Państwo=="Chorwacja"|Państwo=="Słowenia"|Państwo=="Serbia"|Państwo=="Bośnia i Hercegowina"|Państwo=="Albania"|Państwo=="Macedonia Północna"|Państwo=="Bułgaria"|Państwo=="Rumunia", paste("Bałkany"),
+                                                         if_else(Państwo=="Turcja"|Państwo=="Gruzja"|Państwo=="Azerbejdżan"|Państwo=="Armenia", paste("Turcja i Kaukaz"),
+                                                                 if_else(Państwo=="Kazachstan"|Państwo=="Turkmenistan"|Państwo=="Tadżykistan"|Państwo=="Kirgistan"|Państwo=="Uzbekistan", paste("Azja Środkowa"),
+                                                                         if_else(Państwo=="Rosja", paste("Rosja"),
+                                                                                if_else(Państwo=="Niemcy", paste("Niemcy"),
+                                                                                        paste("Pozostałe")))))))))))
+
+covid <- covid %>%
+  mutate(nowe.zgony = liczba.ofiar - lag(liczba.ofiar, default = first(liczba.ofiar))) %>%
+  mutate(nowe.zgony = if_else(nowe.zgony<0, paste(liczba.ofiar), paste(nowe.zgony))) %>%
+  mutate(nowe.zgony = as.numeric(nowe.zgony))
+
+
+#zostawiam do testowania czy są NA
 a <- filter(covid, is.na(Państwo))
 
-rm(a, chorzy, ofiary, wyzdrowienia)
+rm(a, chorzy, ofiary, wyzdrowienia, nazwy)
 
 # dla Power BI
-save(covid, file = "covid.Rda")
+save(Australia, Canada, chiny, USA, covid, file = "covid.Rda")
 load(file = "E:/R/COVID-19/covid.Rda")
 

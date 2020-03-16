@@ -141,8 +141,8 @@ covid <- covid %>%
          Country.Region = gsub("Reunion", "Réunion", Country.Region),
          Country.Region = gsub("Venezuela", "Venezuela, Bolivarian Republic of", Country.Region),
          Country.Region = gsub("Curacao", "Curaçao", Country.Region),
-         Country.Region = gsub("USA", "United States", Country.Region))
-
+         Country.Region = gsub("USA", "United States", Country.Region),
+         Country.Region = gsub("Congo [(]Brazzaville[])]", "Congo", Country.Region))
 
 covid <- left_join(covid, nazwy, by="Country.Region")
 covid <- covid %>% 
@@ -150,8 +150,8 @@ covid <- covid %>%
   mutate(grupa = if_else(Państwo=="Polska"|Państwo=="Słowacja"|Państwo=="Węgry"|Państwo=="Czechy", paste("V4"),
                          if_else(Państwo=="Ukraina"|Państwo=="Białoruś"|Państwo=="Mołdawia", paste("BUM"),
                                  if_else(Państwo=="Litwa"|Państwo=="Łotwa"|Państwo=="Estonia", paste("P. Bałtyckie"),
-                                         if_else(Państwo=="Norwegia"|Państwo=="Szwecja"|Państwo=="Finlandia"|Państwo=="Dania", paste("Skandynawia"),
-                                                 if_else(Państwo=="Chorwacja"|Państwo=="Słowenia"|Państwo=="Serbia"|Państwo=="Bośnia i Hercegowina"|Państwo=="Albania"|Państwo=="Macedonia Północna"|Państwo=="Bułgaria"|Państwo=="Rumunia", paste("Bałkany"),
+                                         if_else(Państwo=="Norwegia"|Państwo=="Szwecja"|Państwo=="Finlandia"|Państwo=="Dania"|Państwo=="Islandia", paste("Skandynawia"),
+                                                 if_else(Państwo=="Chorwacja"|Państwo=="Słowenia"|Państwo=="Serbia"|Państwo=="Bośnia i Hercegowina"|Państwo=="Albania"|Państwo=="Macedonia Północna"|Państwo=="Bułgaria"|Państwo=="Rumunia"|Państwo=="Kosowo", paste("Bałkany"),
                                                          if_else(Państwo=="Turcja"|Państwo=="Gruzja"|Państwo=="Azerbejdżan"|Państwo=="Armenia", paste("Turcja i Kaukaz"),
                                                                  if_else(Państwo=="Kazachstan"|Państwo=="Turkmenistan"|Państwo=="Tadżykistan"|Państwo=="Kirgistan"|Państwo=="Uzbekistan", paste("Azja Środkowa"),
                                                                          if_else(Państwo=="Rosja", paste("Rosja"),
@@ -172,4 +172,3 @@ rm(a, chorzy, ofiary, wyzdrowienia, nazwy)
 # dla Power BI
 save(Australia, Canada, chiny, USA, covid, file = "covid.Rda")
 load(file = "E:/R/COVID-19/covid.Rda")
-

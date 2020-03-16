@@ -161,7 +161,9 @@ covid <- covid %>%
 covid <- covid %>%
   mutate(nowe.zgony = liczba.ofiar - lag(liczba.ofiar, default = first(liczba.ofiar))) %>%
   mutate(nowe.zgony = if_else(nowe.zgony<0, paste(liczba.ofiar), paste(nowe.zgony))) %>%
-  mutate(nowe.zgony = as.numeric(nowe.zgony))
+  mutate(nowe.zgony = as.numeric(nowe.zgony)) %>% 
+  #próbujemy dodać procent dziennych zachorowań
+  mutate(proc.zach = (liczba.zachorowan/lag(liczba.zachorowan, default = first(liczba.zachorowan)))-1)
 
 
 #zostawiam do testowania czy są NA

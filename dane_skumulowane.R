@@ -35,6 +35,27 @@ covid <- covid %>%
 
 chiny <- filter(covid, Country.Region=="China")
 
+hubei <- filter(chiny, Province.State=="Hubei") %>%
+  mutate(Country.Region="Hubei")
+
+chiny.bez.hubei <- filter(chiny, Province.State!="Hubei")
+
+#obrabiamy chiny bez hubei. 
+chiny.bez.hubei <- chiny.bez.hubei %>%
+  group_by(data) %>%
+  summarise(
+    Lat=33.582751,
+    Long=106.270960,
+    liczba.zachorowan=sum(liczba.zachorowan),
+    liczba.ofiar=sum(liczba.ofiar),
+    liczba.wyzdrowien=sum(liczba.wyzdrowien)
+  ) %>%
+  mutate(nowe.zachorowania = liczba.zachorowan - lag(liczba.zachorowan, default = first(liczba.zachorowan))) %>%
+  mutate(smiertelnosc = liczba.ofiar/liczba.zachorowan) %>%
+  mutate(Country.Region="China.no.hubei", Province.State="China")%>%
+  unite(indeks, Province.State, Country.Region, data, sep = "_", remove = FALSE) %>%
+  select(1, 11, 10, 3, 4, 2, 5, 6, 7, 8,9)
+
 #obrabiamy chiny
 chiny <- chiny %>%
   group_by(data) %>%
@@ -115,6 +136,9 @@ covid <- covid %>%
                                                                            if_else(Province.State=="French Polynesia", paste("French Polynesia"),
                                                                                    if_else(Province.State=="Fench Guiana", paste("French Guiana"),
                                                                                            as.character(Country.Region))))))))))
+covid.chiny <- bind_rows(covid, Australia, USA, Canada, hubei, chiny.bez.hubei)
+save(covid.chiny, file = "covid.chiny.Rda")
+rm(covid.chiny, hubei, chiny.bez.hubei)
 
 covid <- bind_rows(covid, Australia, USA, chiny, Canada)
 
@@ -142,7 +166,8 @@ covid <- covid %>%
          Country.Region = gsub("Venezuela", "Venezuela, Bolivarian Republic of", Country.Region),
          Country.Region = gsub("Curacao", "Curaçao", Country.Region),
          Country.Region = gsub("USA", "United States", Country.Region),
-         Country.Region = gsub("Congo [(]Brazzaville[])]", "Congo", Country.Region))
+         Country.Region = gsub("Congo [(]Brazzaville[])]", "Congo", Country.Region),
+         Country.Region = gsub("The Bahamas", "Bahamas", Country.Region))
 
 covid <- left_join(covid, nazwy, by="Country.Region")
 covid <- covid %>% 
@@ -163,14 +188,14 @@ covid <- covid %>%
   mutate(nowe.zgony = if_else(nowe.zgony<0, paste(liczba.ofiar), paste(nowe.zgony))) %>%
   mutate(nowe.zgony = as.numeric(nowe.zgony)) %>% 
   #próbujemy dodać procent dziennych zachorowań
-  mutate(proc.zach = (liczba.zachorowan/lag(liczba.zachorowan, default = first(liczba.zachorowan)))-1)
+  mutate(proc.zach = (liczba.zachorowan/lag(liczba.zachorowan, default = first(liczba.zachorowan)))-1) 
 
 
 #zostawiam do testowania czy są NA
 a <- filter(covid, is.na(Państwo))
 
-rm(a, chorzy, ofiary, wyzdrowienia, nazwy)
+rm(a, chorzy, ofiary, wyzdrowienia, nazwy, Australia, USA, Canada, chiny)
 
 # dla Power BI
-save(Australia, Canada, chiny, USA, covid, file = "covid.Rda")
+save(covid, file = "covid.Rda")
 load(file = "E:/R/COVID-19/covid.Rda")

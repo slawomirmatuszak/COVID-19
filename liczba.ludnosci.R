@@ -31,9 +31,16 @@ a<- filter(population, is.na(pop_est))
 population <- bind_rows(population, chiny.hubei)
 
 population <- population %>%
-  filter(liczba.zachorowan>100) %>%
+  filter(liczba.zachorowan>200) %>%
   group_by(Country.Region) %>%
   mutate(id=row_number()-1, proc.chorych=liczba.zachorowan/pop_est, proc.zgonow=liczba.ofiar/pop_est)
+
+population2 <- population %>%
+  group_by(Country.Region) %>%
+  mutate(id=row_number()-1, proc.chorych=liczba.zachorowan/pop_est, proc.zgonow=liczba.ofiar/pop_est)%>%
+  filter(proc.chorych>0.0001) %>%
+  filter(data==max(population$data))
+
 
 test <- population%>%
   filter(data==max(population$data)) %>%
@@ -45,14 +52,17 @@ test.no.hubei <- population%>%
   filter(Country.Region!="Hubei") %>%
   arrange(proc.chorych)
 
+test.zachorowalnosc <- population %>%
+  filter(proc.chorych>0.0001) %>%
+  filter(data==max(population$data))
+
 #chorzy i ludność
-ggplot(data=filter(test, liczba.zachorowan>300), aes(x=Państwo, y=proc.chorych, label=Państwo))+
+ggplot(data=test, aes(x=Państwo, y=proc.chorych, label=Państwo))+
   geom_point(color="blue", size=2)+
   ggrepel::geom_label_repel(hjust=-0.1, fill="grey")+
   scale_y_continuous(limits = c(0, 0.0012), labels = label_percent()) +
   theme_bw()+
-  ggtitle("Procent chorych w stosunku do liczby ludności")+
-  theme(axis.title.x=element_blank(),
+  ggtitle(paste0("Procent zachorowań w stosunku do liczby ludności. Stan na", gsub("2020-03-"," ", max(test.no.hubei$data))," ",months(max(test.no.hubei$data)), "."))+  theme(axis.title.x=element_blank(),
         axis.title.y=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
@@ -62,16 +72,56 @@ ggplot(data=filter(test, liczba.zachorowan>300), aes(x=Państwo, y=proc.chorych,
 ggplot(data=test.no.hubei, aes(x=Państwo, y=proc.chorych, label=Państwo))+
   geom_point(color="blue", size=2)+
   ggrepel::geom_label_repel(hjust=-0.1, fill="grey")+
-  scale_y_continuous(limits = c(0, 0.0006), labels = label_percent()) +
+  scale_y_continuous(limits = c(0, 0.00077), labels = label_percent()) +
   theme_bw()+
-  ggtitle("Procent chorych w stosunku do liczby ludności")+
+  ggtitle(paste0("Procent zachorowań w stosunku do liczby ludności. Stan na", gsub("2020-03-"," ", max(test.no.hubei$data))," ",months(max(test.no.hubei$data)), "."))+
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
         plot.title = element_text(hjust = 0.5))
 
-#zgony i ludność 
+#chorzy i ludność logarytmicznie powyżej 0.0001 procenta zachorowania
+ggplot(data=test.zachorowalnosc, aes(x=Państwo, y=proc.chorych, label=Państwo))+
+  geom_point(color="blue", size=2)+
+  ggrepel::geom_label_repel(hjust=-0.1, fill="grey", label=paste(test.zachorowalnosc$Państwo, as.character(round(test.zachorowalnosc$proc.chorych*100, 4)), "%"))+
+  scale_y_continuous(trans='log10',labels = label_percent()) +
+  theme_bw()+
+  ggtitle(paste0("Procent zachorowań w stosunku do liczby ludności. Stan na", gsub("2020-03-"," ", max(test.no.hubei$data))," ",months(max(test.no.hubei$data)), "."))+  
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        plot.title = element_text(hjust = 0.5))
+
+#chorzy i ludność  powyżej 0.0001 procenta zachorowania i powyżej 200 chorych
+ggplot(data=test.zachorowalnosc, aes(x=Państwo, y=proc.chorych, label=Państwo))+
+  geom_point(color="blue", size=2)+
+  ggrepel::geom_label_repel(hjust=-0.1, fill="grey", label=paste(test.zachorowalnosc$Państwo, as.character(round(test.zachorowalnosc$proc.chorych*100, 3)), "%"))+
+  scale_y_continuous(labels = label_percent()) +
+  theme_bw()+
+  ggtitle(paste0("Procent zachorowań w stosunku do liczby ludności. Stan na", gsub("2020-03-"," ", max(test.no.hubei$data))," ",months(max(test.no.hubei$data)), "."))+  
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        plot.title = element_text(hjust = 0.5))
+
+#chorzy i ludność  powyżej 0.0001 procenta zachorowania
+ggplot(data=population2, aes(x=Państwo, y=proc.chorych, label=Państwo))+
+  geom_point(color="blue", size=2)+
+  ggrepel::geom_label_repel(hjust=-0.1, fill="grey", label=paste(population2$Państwo, as.character(round(population2$proc.chorych*100, 3)), "%"))+
+  scale_y_continuous(labels = label_percent()) +
+  theme_bw()+
+  ggtitle(paste0("Procent zachorowań w stosunku do liczby ludności. Stan na", gsub("2020-03-"," ", max(test.no.hubei$data))," ",months(max(test.no.hubei$data)), "."))+  
+  theme(axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        plot.title = element_text(hjust = 0.5))
+
+ 
+  #zgony i ludność 
 ggplot(data=test, aes(x=Państwo, y=proc.zgonow, label=Państwo))+
   geom_point(color="blue", size=2)+
   ggrepel::geom_label_repel(hjust=-0.1, fill="grey")+

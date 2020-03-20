@@ -10,7 +10,18 @@ obwody<- read_xlsx("./Ukraina.dane/lista obwodów2.xlsx") %>%
   filter(Obwód!="Krym"&Obwód!="Sewastopol")%>%
   rename(id=6)
 obwody[13,6] <- "м. Київ"
-#trzeba dodać dane Dubileta. 
+
+#dodajemy dane Dubileta
+dubilet <- read_xlsx("E:/R/UA_spis/data/dubilet.xlsx")%>%
+  select(1,2)%>%
+  filter(is.na(dubilet)==FALSE)%>%
+  rename(id=1)%>%
+  mutate(dubilet=dubilet*1000)
+
+obwody <- left_join(obwody,dubilet, by="id") %>%
+  select(-11)%>%
+  rename(population=11)
+rm(dubilet)
 
 ########################################################################################################
 # obwody z csv
@@ -32,9 +43,32 @@ UA_obwody2 <- read_xlsx("./Ukraina.dane/obwody/2020.03.19.obwody.xlsx") %>%
 UA_obwody <- rbind(UA_obwody, UA_obwody2)
 # łączymy z obwodami
 UA_obwody <- left_join(UA_obwody, obwody, by="id")
+rm(UA_obwody2)
+
+#zmieniamy jednak na szeroką, bo tak jest lepiej
+UA_obwody <- UA_obwody%>%
+  unite(id2, Kod, data, remove = FALSE)%>%
+  mutate(dane=if_else(dane=="Захворіло", paste("liczba.chorych"),
+                      if_else(dane=="Підозри", paste("podejrzewani"),
+                              ifelse(dane=="Лікарні", paste("liczba.szpitali"),
+                                     if_else(dane=="Пристосовані ліжкомісця", paste("liczba.lozek"),
+                      paste(dane))))))
+UA_obwody <- pivot_wider(UA_obwody, names_from = dane, values_from = ilosc)
+
+a <- UA_obwody %>%
+  # linia poniżej chyba jest błędna, trzeba wziąć dane ze szpitali, bo tutaj podejrzani są skumulowani
+  mutate(lozka.chorzyIpodejrzani = liczba.chorych+podejrzewani)%>%
+  mutate(wolne.lozka=liczba.lozek-liczba.chorych)%>%
+  mutate(lozka.10tys = liczba.lozek/population*10000)%>%
+  mutate(proc.wykorzystanych.lozek = liczba.chorych/liczba.lozek)
+
+# trzeba dodać dzienne zachorowania
 
 save(UA_obwody, file = "./Ukraina.dane/obwody.Rda")
 load(file = "E:/R/COVID-19/Ukraina.dane/obwody.Rda")
+
+###################################################################################################
+###################################################################################################
 ###################################################################################################
 #Poniższa część do następnej linii jest już nieaktualna, bo przestali wykładać dane
 #(z pliku power BI)
@@ -95,7 +129,7 @@ szpitale <- left_join(szpitale, obwody, by="Obwód")
 #tu może być błąd, bo było szpitale 2, a zmieniłem na szpitale
 save(szpitale, file = "./Ukraina.dane/szpitale.Rda")
 
-############################################################################################################
+###################################################################################################
 # nie trzeba odpalać skryptu powyżej - wystarczy wgrać plik
 load(file = "E:/R/COVID-19/Ukraina.dane/szpitale.Rda")
 szpitale <- szpitale %>%
@@ -180,6 +214,5 @@ save(szpitale2, file = "./Ukraina.dane/szpitale2.Rda")
 load(file = "E:/R/COVID-19/Ukraina.dane/szpitale2.Rda")
 
 
-# trzeba podoawać ilość wykorzystanych łóżek (na chorych i oddzielnie na chorych+podejrzanych)
-# trzeba wgrać na wcześniejszym etapie dane spisu Dubileta, bo wydają się bardziej wiarygodne i nie mają DNR/LNR
+
 

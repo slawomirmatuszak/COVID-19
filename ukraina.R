@@ -31,9 +31,19 @@ UA_obwody <- read.csv2("./Ukraina.dane/obwody/2020.03.18.Tablica_data.csv", enco
   mutate(data=as.Date("2020-03-18"))%>%
   select(4, 2, 1, 3)
 
+# łączenie danych z wielu dni i wielu plików
+path <- "./Ukraina.dane/obwody/dane"
+merge_file_name <- "./Ukraina.dane/obwody//merged_file.xlsx"
+filenames_list <- list.files(path= path, full.names=TRUE)
 
-# nad tym będzie trzeba popracować, pomyśleć, jak efektywnie łączyć dane z wielu dni i wielu plikóW.
-UA_obwody2 <- read_xlsx("./Ukraina.dane/obwody/2020.03.19.obwody.xlsx") %>%
+All <- lapply(filenames_list,function(filename){
+  print(paste("Merging",filename,sep = " "))
+  read_xlsx(filename)
+})
+UA_obwody2 <- do.call(rbind.data.frame, All)
+rm(All, path, merge_file_name, filenames_list)
+
+UA_obwody2 <- UA_obwody2 %>%
   fill(data, .direction = "down")%>%
   rename(id=2)%>%
   filter(id!="Всього по Україні")%>%
@@ -55,15 +65,11 @@ UA_obwody <- UA_obwody%>%
                       paste(dane))))))
 UA_obwody <- pivot_wider(UA_obwody, names_from = dane, values_from = ilosc)
 
-a <- UA_obwody %>%
-  # linia poniżej chyba jest błędna, trzeba wziąć dane ze szpitali, bo tutaj podejrzani są skumulowani
-  mutate(lozka.chorzyIpodejrzani = liczba.chorych+podejrzewani)%>%
-  mutate(wolne.lozka=liczba.lozek-liczba.chorych)%>%
-  mutate(lozka.10tys = liczba.lozek/population*10000)%>%
-  mutate(proc.wykorzystanych.lozek = liczba.chorych/liczba.lozek)
-
-# trzeba dodać dzienne zachorowania
-
+#do sprawdzenia, czy się zgadza 
+test <- UA_obwody %>%
+  filter(data==max(data)) %>%
+  select(3,17:14) 
+        
 save(UA_obwody, file = "./Ukraina.dane/obwody.Rda")
 load(file = "E:/R/COVID-19/Ukraina.dane/obwody.Rda")
 
@@ -135,11 +141,22 @@ load(file = "E:/R/COVID-19/Ukraina.dane/szpitale.Rda")
 szpitale <- szpitale %>%
   rename(wyzdrowieli=wyzrowieli)
 
+# łączenie danych z wielu dni i wielu plików
+path <- "./Ukraina.dane/dobowe.dane.2"
+merge_file_name <- "./Ukraina.dane//merged_file.xlsx"
+filenames_list <- list.files(path= path, full.names=TRUE)
 
-#Trzeba pomyśleć, jak to zautomatyzować.
+All <- lapply(filenames_list,function(filename){
+  print(paste("Merging",filename,sep = " "))
+  read_xlsx(filename)
+})
+szpitale2 <- do.call(rbind.data.frame, All)
+rm(All, path, merge_file_name, filenames_list)
+
+
 ## dodajemy szpitale z nowych plików
-szpitale2 <- read_xlsx("./Ukraina.dane/dobowe.dane.2/2020.03.19.xlsx") %>%
-  fill(1,2, .direction = "down")%>%
+szpitale2 <- szpitale2 %>%
+  fill(1, .direction = "down")%>%
   rename(stan=2, szpital=3, adres=4, przystosowane.lozka=5, podejrzewani=6, potwierdzeni=7, wyzdrowieli=8, smiertelne.z.potwierdzonych=9) %>%
   select(1,4,3, 2, 5, 8, 6, 7,9)%>%
   unite(id, c(2,3), sep = "_", remove = FALSE)%>%
@@ -148,7 +165,9 @@ szpitale2 <- read_xlsx("./Ukraina.dane/dobowe.dane.2/2020.03.19.xlsx") %>%
   mutate(id=gsub(" ", "", id))%>%
   mutate(id=gsub('"', "", id))%>%
   mutate(id=tolower(id))%>%
-  mutate(id=gsub("-", "", id))
+  mutate(id=gsub("-", "", id)) %>%
+  #tu jest potencjalny błąd, ale 19 marca są dane z całęgo kijowa
+  filter(szpital!="Всього по Києву")
 
 #dodajemy długość i szerokość ze szpitali. 
 #update: Nie ma sensu, za dużo zabawy. Same obwody.
@@ -163,6 +182,7 @@ a <- szpitale %>%
   mutate(id=gsub('"', "", id))%>%
   mutate(id=tolower(id))%>%
   mutate(id=gsub("-", "", id))
+
 
 a <- left_join(szpitale2, a, by="id")
 a <- a %>%
@@ -181,8 +201,18 @@ a <- a %>%
   mutate(Obwód=if_else(adres=="м. Лисичанськ, вул. 40 років Перемоги, 12а", paste("łuhański"), paste(Obwód))) %>%
   mutate(Obwód=if_else(adres=="м. Могилів-Подільський, вул. Полтавська, 89/2", paste("winnicki"), paste(Obwód))) %>%
   mutate(Obwód=if_else(adres=="с. Софіївська Борщагівка, вул. Яблунева, 26", paste("kijowski"), paste(Obwód))) %>%
-  mutate(Obwód=if_else(adres=="м. Київ", paste("Kijów"), paste(Obwód)))
-    
+  mutate(Obwód=if_else(adres=="м. Київ", paste("Kijów"), paste(Obwód))) %>%
+  mutate(szpital=if_else(adres=="смт. Баришівка, вул. Київський шлях, 126", paste("Баришівська центральна районна лікарня"), paste(szpital))) %>%
+  mutate(szpital=if_else(adres=="'м. Макарів, вул. Б.Хмельницького, 62-А", paste("МАКАРІВСЬКА ЦЕНТРАЛЬНА РАЙОННА ЛІКАРНЯ"), paste(szpital))) %>%
+  mutate(Obwód=if_else(adres=="м. Київ, вул. Кучера, 7", paste("Kijów"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Київ, просп. Лобановського, 2", paste("Kijów"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Буринь, вул. Кутузова, 15", paste("sumski"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Запоріжжя, просп. Соборний, 88", paste("zaporoski"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Охтирка, вул. Петропавлівська, 15", paste("sumski"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м.Сокиряни, вул. Кобилянської, 43", paste("czerniowiecki"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Мелітополь, вул. Індустріальна, 89", paste("zaporoski"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="смт. Баришівка, вул. Київський шлях, 126", paste("kijowski"), paste(Obwód)))
+
   
 # test NA i "NA"
 b <- filter(a, Obwód=="NA")
@@ -197,9 +227,12 @@ b<- a %>%
   filter(data==max(data))%>%
   group_by(Obwód)%>%
   summarise(
-    lozka=sum(przystosowane.lozka)
+    lozka=sum(przystosowane.lozka),
+    podejrzani=sum(podejrzewani),
+    zdiagnozowani=sum(potwierdzeni, na.rm=TRUE)
   )
-
+b <- filter(a, data==max(data))
+# dane o zakażonych rozjeżdżają sie z danymi obwodowymi. Może dlatego, że nie wszyscy są w szpitalach
 #dodajemy listę obwodów
 
 a<- left_join(select(a, -2), obwody, by="Obwód")%>%
@@ -213,6 +246,47 @@ szpitale2 <- rbind(szpitale, a)
 save(szpitale2, file = "./Ukraina.dane/szpitale2.Rda")
 load(file = "E:/R/COVID-19/Ukraina.dane/szpitale2.Rda")
 
+###################################################################################################
+load(file = "E:/R/COVID-19/Ukraina.dane/obwody.Rda")
+load(file = "E:/R/COVID-19/Ukraina.dane/szpitale2.Rda")
 
+# łączymy obwody, śmiertelne przypadki i wyzdrowienia
+# trzeba będzie pomyśleć, jak potem zrobić skumulowane zgony i wyzdrowienia. 
+zgon.zdrowi <- szpitale2 %>%
+  group_by(data, Kod)%>%
+  summarise(
+    dzienne.zgony = sum(smiertelne.z.potwierdzonych),
+    dzienne.wyzdrowienia = sum(wyzdrowieli),
+  ) %>%
+  group_by(Kod)%>%
+  #linia poniżej jest jeszcze do weryfikacji, jak będzie więcej zgonów/wyzdrowień
+  mutate(suma.zgonow=cumsum(dzienne.zgony), suma.wyzdrowien=cumsum(dzienne.wyzdrowienia)) %>%
+  filter(suma.zgonow>0|suma.wyzdrowien>0) %>%
+  #usuwamy daty
+  filter(data>"2020-03-17")%>%
+  unite(id2, Kod, data, sep="_", remove = FALSE)%>%
+  ungroup()%>%
+  select(-c(2,3))
+#dodajemy ręcznie zmarłego z żytomierza
+zgon.zdrowi[1,2] <- 1
 
+# łączymy tabele
+UA_obwody2 <- left_join(UA_obwody, zgon.zdrowi, by="id2")%>%
+  #ciekawy fragment do zmiany NA na zero
+  mutate_at(c(18:21), ~replace(., is.na(.), 0))
 
+save(UA_obwody2, file = "./Ukraina.dane/obwody2.Rda")
+
+# to jest do dopracowania i rozszerzenia
+a <- UA_obwody %>%
+  # linia poniżej chyba jest błędna, trzeba wziąć dane ze szpitali, bo tutaj podejrzani są skumulowani
+  # trzeba dodać taką linię do szpitali. 
+  mutate(lozka.chorzyIpodejrzani = liczba.chorych+podejrzewani)%>%
+  mutate(wolne.lozka=liczba.lozek-liczba.chorych)%>%
+  mutate(lozka.10tys = liczba.lozek/population*10000)%>%
+  mutate(proc.wykorzystanych.lozek = liczba.chorych/liczba.lozek)
+
+# trzeba dodać dzienne zachorowania
+
+a <- szpitale2 %>%
+  filter(data=="2020-03-2019")

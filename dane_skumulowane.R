@@ -47,8 +47,7 @@ chiny.bez.hubei <- chiny.bez.hubei %>%
     Lat=33.582751,
     Long=106.270960,
     liczba.zachorowan=sum(liczba.zachorowan),
-    liczba.ofiar=sum(liczba.ofiar),
-    liczba.wyzdrowien=sum(liczba.wyzdrowien)
+    liczba.ofiar=sum(liczba.ofiar)
   ) %>%
   mutate(nowe.zachorowania = liczba.zachorowan - lag(liczba.zachorowan, default = first(liczba.zachorowan))) %>%
   mutate(smiertelnosc = liczba.ofiar/liczba.zachorowan) %>%
@@ -171,7 +170,9 @@ covid <- covid %>%
          Country.Region = gsub("Bahamas, The", "Bahamas", Country.Region),
          Country.Region = gsub("The Gambia", "Gambia", Country.Region),
          Country.Region = gsub("Gambia, The", "Gambia", Country.Region),
-         Country.Region = gsub("Cabo Verde", "Cape Verde", Country.Region))
+         Country.Region = gsub("Cabo Verde", "Cape Verde", Country.Region),
+         Country.Region = gsub("East Timor", "Timor-Leste", Country.Region),
+         Country.Region = gsub("Syria", "Syrian Arab Republic", Country.Region))
 
 
 covid <- left_join(covid, nazwy, by="Country.Region")

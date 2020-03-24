@@ -32,7 +32,13 @@ covid.chiny <- covid.chiny %>%
          Country.Region = gsub("Curacao", "Curaçao", Country.Region),
          Country.Region = gsub("USA", "United States", Country.Region),
          Country.Region = gsub("Congo [(]Brazzaville[])]", "Congo", Country.Region),
-         Country.Region = gsub("The Bahamas", "Bahamas", Country.Region))
+         Country.Region = gsub("The Bahamas", "Bahamas", Country.Region),
+         Country.Region = gsub("Bahamas, The", "Bahamas", Country.Region),
+         Country.Region = gsub("The Gambia", "Gambia", Country.Region),
+         Country.Region = gsub("Gambia, The", "Gambia", Country.Region),
+         Country.Region = gsub("Cabo Verde", "Cape Verde", Country.Region),
+         Country.Region = gsub("East Timor", "Timor-Leste", Country.Region),
+         Country.Region = gsub("Syria", "Syrian Arab Republic", Country.Region))
 
 covid.chiny <- left_join(covid.chiny, nazwy, by="Country.Region")
 covid.chiny <- covid.chiny %>% 
@@ -54,6 +60,9 @@ covid.chiny <- covid.chiny %>%
   mutate(nowe.zgony = as.numeric(nowe.zgony)) %>% 
   #próbujemy dodać procent dziennych zachorowań
   mutate(proc.zach = (liczba.zachorowan/lag(liczba.zachorowan, default = first(liczba.zachorowan)))-1) 
+
+# usuwamy wyleczonych
+covid.chiny <- covid.chiny[,-8]
 
 #zostawiam do testowania czy są NA
 a <- filter(covid.chiny, is.na(Państwo))

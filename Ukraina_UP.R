@@ -108,11 +108,20 @@ obwody1 <- obwody %>%
 obwody2 <- obwody %>%
   select(1,16:18) %>%
   pivot_longer(cols = c(2:4), names_to = "dzienne", values_to = "ilosc")
-  
-# Chyba jest wszytko ok, ale jeszcze do sprawdzenia
-# wychodzi, że jest podwójna id columna nie wiadmo dlaczego, w poer BI wywala błąd
-obwody <- cbind(obwody1, obwody2, by = "id2")
+
+# to jeszcze do późniejszego sprawdzenia, czy jest prawidłowo
+obwody <- cbind(obwody1, obwody2)
+obwody <- obwody[,-c(1,13)]
 rm(obwody1, obwody2)
+
+#zmieniamy nazwy
+a <- obwody %>%
+  mutate(skumulowane = gsub("suma.zgonow", "zgony", skumulowane))%>%
+  mutate(skumulowane = gsub("suma.wyzdrowien", "wyleczeni", skumulowane))%>%
+  mutate(skumulowane = gsub("suma.aktywnych", "aktywni", skumulowane))%>%
+  mutate(dzienne = gsub("nowe.zgony", "zgony", dzienne))%>%
+  mutate(dzienne = gsub("nowe.wyzdrowienia", "wyleczeni", dzienne))%>%
+  mutate(dzienne = gsub("nowi.aktywni", "aktywni", dzienne))
 
 save(obwody, file = "./Ukraina.dane/obwody.UP.Rda")
 load(file = "E:/R/COVID-19/Ukraina.dane/obwody.UP.Rda")

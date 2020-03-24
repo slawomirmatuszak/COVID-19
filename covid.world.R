@@ -133,6 +133,8 @@ covid.chiny <- bind_rows(covid, Australia, USA, Canada, hubei, chiny.bez.hubei)
 save(covid.chiny, file = "covid.chiny2.Rda")
 rm(covid.chiny, hubei, chiny.bez.hubei)
 
+covid <- bind_rows(covid, Australia, USA, chiny, Canada)
+
 #wgrywamy państwa
 nazwy <- read_xlsx("nazwy państw.xlsx", sheet = 1)
 nazwy <- nazwy %>%

@@ -23,6 +23,9 @@ obwody <- left_join(obwody,dubilet, by="id") %>%
   rename(population=11)
 rm(dubilet)
 
+save(obwody, file = "./Ukraina.dane/obwody.lista.Rda")
+load(file = "E:/R/COVID-19/Ukraina.dane/obwody.lista.Rda")
+
 ########################################################################################################
 # obwody z csv
 UA_obwody <- read.csv2("./Ukraina.dane/obwody/2020.03.18.Tablica_data.csv", encoding = "UTF-8", stringsAsFactors = F)%>%
@@ -30,6 +33,8 @@ UA_obwody <- read.csv2("./Ukraina.dane/obwody/2020.03.18.Tablica_data.csv", enco
   mutate(id=as.character(id))%>%
   mutate(data=as.Date("2020-03-18"))%>%
   select(4, 2, 1, 3)
+#dodajemy iwanofrankowsk
+UA_obwody[18,4] <- 1
 
 # łączenie danych z wielu dni i wielu plików
 path <- "./Ukraina.dane/obwody/dane"
@@ -41,6 +46,8 @@ All <- lapply(filenames_list,function(filename){
   read_xlsx(filename)
 })
 UA_obwody2 <- do.call(rbind.data.frame, All)
+#doajemy Iwanofrankowsk
+UA_obwody2[9,6] <- 1
 rm(All, path, merge_file_name, filenames_list)
 
 UA_obwody2 <- UA_obwody2 %>%
@@ -211,7 +218,15 @@ a <- a %>%
   mutate(Obwód=if_else(adres=="м. Охтирка, вул. Петропавлівська, 15", paste("sumski"), paste(Obwód))) %>%
   mutate(Obwód=if_else(adres=="м.Сокиряни, вул. Кобилянської, 43", paste("czerniowiecki"), paste(Obwód))) %>%
   mutate(Obwód=if_else(adres=="м. Мелітополь, вул. Індустріальна, 89", paste("zaporoski"), paste(Obwód))) %>%
-  mutate(Obwód=if_else(adres=="смт. Баришівка, вул. Київський шлях, 126", paste("kijowski"), paste(Obwód)))
+  mutate(Obwód=if_else(adres=="смт. Баришівка, вул. Київський шлях, 126", paste("kijowski"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Запоріжжя, вул. Брюллова, 6", paste("zaporoski"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Бердичів, вул. Здоров’я, 1", paste("żytomierski"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Вінниця, Хмельницьке шосе, 92", paste("winnicki"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Глибока, вул. Шевченка, 11", paste("czerniowiecki"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Жмеринка, вул. Київська, 288", paste("winnicki"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Теребовля, вул. Січових Стрільців, 25", paste("tarnopolski"), paste(Obwód))) %>%
+  mutate(Obwód=if_else(adres=="м. Запоріжжя, вул. Чумаченко, 21", paste("zaporoski"), paste(Obwód)))
+  
 
   
 # test NA i "NA"
@@ -233,8 +248,8 @@ b<- a %>%
   )
 b <- filter(a, data==max(data))
 # dane o zakażonych rozjeżdżają sie z danymi obwodowymi. Może dlatego, że nie wszyscy są w szpitalach
-#dodajemy listę obwodów
 
+#dodajemy listę obwodów
 a<- left_join(select(a, -2), obwody, by="Obwód")%>%
   mutate(lat.szp="NA", long.szp="NA")%>%
   select(1:3, 21,22,4:20) %>%
@@ -278,15 +293,40 @@ UA_obwody2 <- left_join(UA_obwody, zgon.zdrowi, by="id2")%>%
 save(UA_obwody2, file = "./Ukraina.dane/obwody2.Rda")
 
 # to jest do dopracowania i rozszerzenia
-a <- UA_obwody %>%
-  # linia poniżej chyba jest błędna, trzeba wziąć dane ze szpitali, bo tutaj podejrzani są skumulowani
-  # trzeba dodać taką linię do szpitali. 
-  mutate(lozka.chorzyIpodejrzani = liczba.chorych+podejrzewani)%>%
-  mutate(wolne.lozka=liczba.lozek-liczba.chorych)%>%
+#trzeba zmienić z liczby chorych na aktywnych
+a <- UA_obwody2 %>%
+  group_by(Obwód) %>%
+  mutate(nowe.zachorowania = liczba.chorych - lag(liczba.chorych, default = first(liczba.chorych))) %>%
+  mutate(suma.aktywnych = liczba.chorych-suma.zgonow-suma.wyzdrowien) %>%
+  mutate(wolne.lozka=liczba.lozek-suma.aktywnych)%>%
   mutate(lozka.10tys = liczba.lozek/population*10000)%>%
-  mutate(proc.wykorzystanych.lozek = liczba.chorych/liczba.lozek)
+  mutate(proc.wykorzystanych.lozek = suma.aktywnych/liczba.lozek)
+#wydzielnamy nowe zachorowania ze skumulowanych pierszego dnia.
+pierwszy.dzien <- UA_obwody2 %>%
+  filter(data==min(data))%>%
+  select(14)%>%
+  pull()
+#dodajemy nowe zachorowania
+a[1:25,22] <- pierwszy.dzien
+rm(pierwszy.dzien)
 
-# trzeba dodać dzienne zachorowania
+a <- a %>%
+  mutate(nowi.aktywni=nowe.zachorowania-dzienne.zgony-dzienne.wyzdrowienia)
+# jest ujemny w Iwanofrankowsku (ale to chyba ok, bo będzie suma)
+UA_obwody2 <- a
+save(UA_obwody2, file = "./Ukraina.dane/obwody2.Rda")
+load(file = "E:/R/COVID-19/Ukraina.dane/obwody2.Rda")
 
-a <- szpitale2 %>%
-  filter(data=="2020-03-2019")
+#przerabiamy na długą, dla mapy w Power BI
+obwody.long <- UA_obwody2 %>%
+  select(2,7,8,9, 10:13, 16,17,18,19,22,27)%>%
+  pivot_longer(cols = c(11:14), names_to = "zachorowania", values_to = "liczba")%>%
+  mutate(zachorowania = gsub("dzienne.zgony", "zgony", zachorowania))%>%
+  mutate(zachorowania = gsub("dzienne.wyzdrowienia", "wyleczeni", zachorowania))%>%
+  mutate(zachorowania = gsub("nowi.aktywni", "aktywni", zachorowania))%>%
+  mutate(zachorowania = gsub("nowe.zachorowania", "zachorowania", zachorowania))
+
+  
+save(obwody.long, file = "./Ukraina.dane/obwody.long.Rda")
+load(file = "E:/R/COVID-19/Ukraina.dane/obwody.long.Rda")
+

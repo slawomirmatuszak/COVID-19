@@ -107,7 +107,8 @@ obwody1 <- obwody %>%
   pivot_longer(cols = c(11:13), names_to = "skumulowane", values_to = "liczba")
 obwody2 <- obwody %>%
   select(1,16:18) %>%
-  pivot_longer(cols = c(2:4), names_to = "dzienne", values_to = "ilosc")
+  pivot_longer(cols = c(2:4), names_to = "dzienne", values_to = "ilosc")%>%
+  rename(id3=1)
 
 # to jeszcze do późniejszego sprawdzenia, czy jest prawidłowo
 obwody <- cbind(obwody1, obwody2)
@@ -115,7 +116,7 @@ obwody <- obwody[,-c(1,13)]
 rm(obwody1, obwody2)
 
 #zmieniamy nazwy
-a <- obwody %>%
+obwody <- obwody %>%
   mutate(skumulowane = gsub("suma.zgonow", "zgony", skumulowane))%>%
   mutate(skumulowane = gsub("suma.wyzdrowien", "wyleczeni", skumulowane))%>%
   mutate(skumulowane = gsub("suma.aktywnych", "aktywni", skumulowane))%>%
@@ -123,5 +124,12 @@ a <- obwody %>%
   mutate(dzienne = gsub("nowe.wyzdrowienia", "wyleczeni", dzienne))%>%
   mutate(dzienne = gsub("nowi.aktywni", "aktywni", dzienne))
 
-save(obwody, file = "./Ukraina.dane/obwody.UP.Rda")
-load(file = "E:/R/COVID-19/Ukraina.dane/obwody.UP.Rda")
+## problem w BI rozwiązała zmiana nazwy pliku
+
+# test czy się zgadza
+sum(obwody$ilosc)
+
+a <- obwody %>%
+  filter(data==max(data))
+save(obwody, file = "./Ukraina.dane/obwody_dzienne.Rda")
+load(file = "E:/R/COVID-19/Ukraina.dane/obwody_dzienne.Rda")

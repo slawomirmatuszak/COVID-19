@@ -31,7 +31,7 @@ a<- filter(population, is.na(pop_est))
 population <- bind_rows(population, chiny.hubei)
 
 population <- population %>%
-  filter(liczba.zachorowan>200) %>%
+  filter(liczba.zachorowan>500) %>%
   group_by(Country.Region) %>%
   mutate(id=row_number()-1, proc.chorych=liczba.zachorowan/pop_est, proc.zgonow=liczba.ofiar/pop_est)
 
@@ -60,7 +60,7 @@ test.zachorowalnosc <- population %>%
 ggplot(data=test, aes(x=Państwo, y=proc.chorych, label=Państwo))+
   geom_point(color="blue", size=2)+
   ggrepel::geom_label_repel(hjust=-0.1, fill="grey")+
-  scale_y_continuous(limits = c(0, 0.0012), labels = label_percent()) +
+  scale_y_continuous(limits = c(0, 0.002), labels = label_percent()) +
   theme_bw()+
   ggtitle(paste0("Procent zachorowań w stosunku do liczby ludności. Stan na", gsub("2020-03-"," ", max(test.no.hubei$data))," ",months(max(test.no.hubei$data)), "."))+  theme(axis.title.x=element_blank(),
         axis.title.y=element_blank(),
@@ -100,7 +100,7 @@ ggplot(data=test.zachorowalnosc, aes(x=Państwo, y=proc.chorych, label=Państwo)
   ggrepel::geom_label_repel(hjust=-0.1, fill="grey", label=paste(test.zachorowalnosc$Państwo, as.character(round(test.zachorowalnosc$proc.chorych*100, 3)), "%"))+
   scale_y_continuous(labels = label_percent()) +
   theme_bw()+
-  ggtitle(paste0("Procent zachorowań w stosunku do liczby ludności. Stan na", gsub("2020-03-"," ", max(test.no.hubei$data))," ",months(max(test.no.hubei$data)), "."))+  
+  ggtitle(paste0("Procent zachorowań w stosunku do liczby ludności. \nPaństwa, w których zachorowało powyżej 0,01% ludności. Stan na", gsub("2020-03-"," ", max(test.no.hubei$data))," ",months(max(test.no.hubei$data)), "."))+  
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank(),
         axis.text.x=element_blank(),
@@ -125,7 +125,7 @@ ggplot(data=population2, aes(x=Państwo, y=proc.chorych, label=Państwo))+
 ggplot(data=test, aes(x=Państwo, y=proc.zgonow, label=Państwo))+
   geom_point(color="blue", size=2)+
   ggrepel::geom_label_repel(hjust=-0.1, fill="grey")+
-  scale_y_continuous(limits = c(0, 0.00004), labels = label_percent()) +
+  #scale_y_continuous(limits = c(0, 0.00004), labels = label_percent()) +
   theme_bw()+
   ggtitle("Procent zgonów w stosunku do liczby ludności")+
   theme(axis.title.x=element_blank(),
@@ -140,7 +140,7 @@ ggplot(data=test, aes(x=Państwo, y=proc.zgonow, label=Państwo))+
   ggrepel::geom_label_repel(hjust=-0.1, fill="grey")+
   scale_y_continuous(trans='log10', labels = label_percent()) +
   theme_bw()+
-  ggtitle("Procent zgonów w stosunku do liczby ludności")+
+  ggtitle("Procent zgonów w stosunku do liczby ludności (skala logarytmiczna)")+
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank(),
         axis.text.x=element_blank(),

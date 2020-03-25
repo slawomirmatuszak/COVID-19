@@ -166,7 +166,9 @@ covid <- covid %>%
          Country.Region = gsub("Gambia, The", "Gambia", Country.Region),
          Country.Region = gsub("Cabo Verde", "Cape Verde", Country.Region),
          Country.Region = gsub("East Timor", "Timor-Leste", Country.Region),
-         Country.Region = gsub("Syria", "Syrian Arab Republic", Country.Region))
+         Country.Region = gsub("Syria", "Syrian Arab Republic", Country.Region),
+         Country.Region = gsub("Laos", "Lao People’s Democratic Republic", Country.Region),
+         Country.Region = gsub("Libya", "Libyan Arab Jamahiriya", Country.Region))
 
 covid <- left_join(covid, nazwy, by="Country.Region")
 covid <- covid %>% 

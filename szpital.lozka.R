@@ -108,7 +108,7 @@ b <- mutate(b, wolne.lozka = liczba.lozek - liczba.chorych - liczba.podejrzanych
 #łóżka na 10 tys.
 ggplot(data=b)+
   geom_bar(aes(x=reorder(Obwód, -lozka.10tys), y=lozka.10tys), stat="identity", fill="blue")+
-  labs(x="obwód", y="") +
+  labs(x="obwód", y="", caption = "Źródło: Departament Polityki Regionalnej i Decentralizacji Biura Prezydenta Ukrainy.") +
   ggtitle("Liczba przystosowanych łóżek na 10 tys. mieszkańców wg stanu na 23 marca") +
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5))
@@ -126,11 +126,15 @@ c <- b %>%
 colors <- c("podejrzewani"="orange", "chorzy"="red", "wolne łóżka"="blue")
 ggplot(data=c)+
   geom_bar(aes(x=reorder(Obwód, -liczba), y=liczba, fill=stan), stat="identity")+
-  labs(x="obwód", y="liczba łóżek", fill="")+
-  ggtitle("Sytuacja w szpitalach wg stanu na 23 marca")+
+  labs(x="obwód", y="liczba łóżek", fill="",
+       title = "Sytuacja w szpitalach na Ukrainie",
+       subtitle = "wg stanu na 23 marca",
+       caption = "Źródło: Departament Polityki Regionalnej i Decentralizacji Biura Prezydenta Ukrainy.")+
+  #ggtitle("Sytuacja w szpitalach wg stanu na 23 marca")+
   scale_fill_manual(values = colors)+
   theme_bw()+
-  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5),legend.position=c(0.9,0.8))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5) , legend.position=c(0.9,0.8), plot.caption = element_text(hjust = 0, size = 8))
 
 lozka.10.tys <- select(b, 1,6)
 write.csv(lozka.10.tys, file="wykres2.lozka.csv")

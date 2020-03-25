@@ -131,5 +131,14 @@ sum(obwody$ilosc)
 
 a <- obwody %>%
   filter(data==max(data))
+
+# jest problem z charkowem, który pojawiał się przez parę dni, a potem zniknął
+# można go potem usunąć ręcznie
+
 save(obwody, file = "./Ukraina.dane/obwody_dzienne.Rda")
 load(file = "E:/R/COVID-19/Ukraina.dane/obwody_dzienne.Rda")
+
+a <- obwody %>%
+  filter(data==max(data))%>%
+  filter(skumulowane=="aktywni")%>%
+  select(2,11)

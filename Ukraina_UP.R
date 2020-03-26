@@ -122,7 +122,12 @@ obwody <- obwody %>%
   mutate(skumulowane = gsub("suma.aktywnych", "aktywni", skumulowane))%>%
   mutate(dzienne = gsub("nowe.zgony", "zgony", dzienne))%>%
   mutate(dzienne = gsub("nowe.wyzdrowienia", "wyleczeni", dzienne))%>%
-  mutate(dzienne = gsub("nowi.aktywni", "aktywni", dzienne))
+  mutate(dzienne = gsub("nowi.aktywni", "aktywni", dzienne))%>%
+  #poprawiamy nazwy obwodów dla OSW
+  mutate(Obwód = gsub("łuhański", "ługański", Obwód))%>%
+  mutate(Obwód = gsub("dniepropietrowski", "dniepropetrowski", Obwód))%>%
+  mutate(Obwód = gsub("iwanofrakiwski", "iwanofrankiwski", Obwód))
+  
 
 ## problem w BI rozwiązała zmiana nazwy pliku
 

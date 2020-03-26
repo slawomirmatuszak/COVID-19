@@ -47,11 +47,12 @@ rm(tf, url)
 #obrabiamy dane 
 
 covid.ECDC <- covid.ECDC %>%
-  rename(data=1, countries=7, ISO2=8, population=9)%>%
+  rename(data=1, countries=7, ISO2=8, ISO3= 9, population=10) %>%
   mutate(data=as.Date(data))%>%
   mutate(countries = gsub("_", " ", countries))%>%
   mutate(population = if_else(countries=="CANADA", as.numeric(paste("37058856")),
                               as.numeric(paste(population))))  %>%
+  mutate(ISO3 = if_else(countries=="CANADA", paste("CAN"), paste(ISO3)))  %>%
   # można więcej tego zrobić, ale ograniczyłem się tylko do głównych
   mutate(countries = gsub("CANADA", "Canada", countries)) %>%
   mutate(countries = gsub("Iran", "Iran, Islamic Republic of", countries),
@@ -73,10 +74,12 @@ covid.ECDC <- covid.ECDC %>%
          countries = gsub("United States of America", "United States", countries))
 
 #test państw na NA
-a <- left_join(covid.ECDC, kraje, by="countries") %>%
-  filter(is.na(ISO3))
+a <- filter(covid.ECDC, is.na(population))
 
-covid.ECDC <- left_join(covid.ECDC, kraje, by="countries")
+a <- left_join(covid.ECDC, kraje, by="countries") %>%
+  filter(ISO3.x=="NA")
+
+covid.ECDC <- left_join(covid.ECDC, select(kraje, -5), by="countries")
 
 # obliczamy skumulowane przypadki i procentowy przyrost
 a <- covid.ECDC %>%
@@ -86,6 +89,11 @@ a <- covid.ECDC %>%
   mutate(suma.chorych=cumsum(Cases), suma.zgonow=cumsum(Deaths))%>%
   ungroup() %>%
   # zachorowania i zgony wobec liczby ludności
-  mutate(proc.chorych = suma.chorych/population, suma.zgonow/population) %>%
+  mutate(proc.chorych = suma.chorych/population, proc.zgonow = suma.zgonow/population) %>%
   # to jeszcze do weryfikacji, ale wygląda, że data jest na dzień opóźniona
-  mutate(data = data-1)
+  mutate(data = data-1) %>%
+  select(-c(2:4)) %>%
+  group_by(countries) %>%
+  mutate(proc.wzrostu.chorych = (suma.chorych/lag(suma.chorych, default = first(suma.chorych)))-1) %>%
+  mutate(proc.wzrostu.zgonow = (suma.zgonow/lag(suma.zgonow, default = first(suma.zgonow)))-1)
+

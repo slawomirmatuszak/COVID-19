@@ -9,6 +9,7 @@ library(readxl)
 
 ############################ stare dane
 load(file = "E:/R/COVID-19/Ukraina.dane/obwody2.Rda")
+## wyliczenia za okres 18-21 marca
 obwody.stare <- UA_obwody2%>%
   filter(data<"2020-03-22") %>%
   select(-c(1,4,5,6,15:17,24:26))%>%
@@ -16,7 +17,6 @@ obwody.stare <- UA_obwody2%>%
   rename (suma.chorych=10, nowe.zgony=15, nowe.wyzrowienia=16)%>%
   ungroup()
 
-#dla testu
 nowe.przypadki <- obwody.stare %>%
   select(1,2,14:17)
 
@@ -57,7 +57,19 @@ rm(all_content, all_filenames, all_lists, all_paths)
 #################### obrabiamy dane z UP
 obwody <- obwody %>%
   rename(id=1, suma.chorych=2, suma.zgonow=3, suma.wyzdrowien=4, data=5)%>%
-  mutate(data=gsub(".csv", "", data), id=gsub(" обл.", "", id))%>%
+  mutate(data=gsub(".csv", "", data), id=gsub(" обл.", "", id))
+
+## wgrywamy dane z UP2. Trzeba będzie dodać automatyzm
+obwodyUP2 <- read_xlsx("./Ukraina.dane/UP2/2020.03.26.xlsx")
+# trzeba linie poniżej trzeba wyrzucić. na razie dodaje datę ręcznie
+obwodyUP2$data <- "2020.03.26"
+obwodyUP2 <- obwodyUP2 %>%
+  rename(id=1, suma.chorych=2, suma.zgonow=4, suma.wyzdrowien=3, data=5)%>%
+  mutate(id=gsub(" обл.", "", id))
+# łączymy obwody z UP i UP2
+obwody <- rbind(obwody, obwodyUP2)
+
+obwody <- obwody %>%
   mutate(data=ymd(data), suma.aktywnych=suma.chorych-suma.zgonow-suma.wyzdrowien)%>%
   left_join(obwody.lista, by="id")%>%
   select(-c(7:9)) %>%

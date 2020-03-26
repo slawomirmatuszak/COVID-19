@@ -82,7 +82,7 @@ a <- left_join(covid.ECDC, kraje, by="countries") %>%
 covid.ECDC <- left_join(covid.ECDC, select(kraje, -5), by="countries")
 
 # obliczamy skumulowane przypadki i procentowy przyrost
-a <- covid.ECDC %>%
+covid.ECDC <- covid.ECDC %>%
   select(1:4, 7:16, 5,6)%>%
   arrange(countries, data) %>%
   group_by(countries)%>%
@@ -95,5 +95,9 @@ a <- covid.ECDC %>%
   select(-c(2:4)) %>%
   group_by(countries) %>%
   mutate(proc.wzrostu.chorych = (suma.chorych/lag(suma.chorych, default = first(suma.chorych)))-1) %>%
-  mutate(proc.wzrostu.zgonow = (suma.zgonow/lag(suma.zgonow, default = first(suma.zgonow)))-1)
+  mutate(proc.wzrostu.zgonow = (suma.zgonow/lag(suma.zgonow, default = first(suma.zgonow)))-1)%>%
+  filter(suma.chorych>0)
+
+save(covid.ECDC, file = "covid.ECDC.Rda")
+load(file = "E:/R/COVID-19/covid.ECDC.Rda")
 

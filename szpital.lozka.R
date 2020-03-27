@@ -152,7 +152,7 @@ b <- a %>%
   filter(is.na(Obwód)==FALSE)
 
 b <-  b %>%
-  left_join(select(obwody, c(4,7,11)), by="Obwód")%>%
+  left_join(select(obwody, c(4,7,9,10,11)), by="Obwód")%>%
   mutate(lozka.10tys = liczba.lozek/population*10000)%>%
   mutate(wolne.lozka = liczba.lozek - liczba.chorych - liczba.podejrzanych)%>%
   #poprawiamy nazwy obwodów dla OSW
@@ -181,8 +181,8 @@ dev.off()
 
 # obłożenie liczbą łóżek
 c <- b %>%
-  select(1, 5, 3, 4, 8)%>%
-  pivot_longer(cols = c(3:5), names_to = "stan", values_to = "liczba") %>%
+  select(1, 5:7, 3, 4, 10)%>%
+  pivot_longer(cols = c(5:7), names_to = "stan", values_to = "liczba") %>%
   mutate(stan=gsub("wolne.lozka", "wolne łóżka", stan))%>%
   mutate(stan=gsub("liczba.podejrzanych", "podejrzewani", stan))%>%
   mutate(stan=gsub("liczba.chorych", "chorzy", stan))%>%

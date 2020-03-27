@@ -86,7 +86,7 @@ covid.ECDC <- covid.ECDC %>%
   select(1:4, 7:16, 5,6)%>%
   arrange(countries, data) %>%
   group_by(countries)%>%
-  mutate(suma.chorych=cumsum(Cases), suma.zgonow=cumsum(Deaths))%>%
+  mutate(suma.chorych=cumsum(cases), suma.zgonow=cumsum(deaths))%>%
   ungroup() %>%
   # zachorowania i zgony wobec liczby ludności
   mutate(proc.chorych = suma.chorych/population, proc.zgonow = suma.zgonow/population) %>%

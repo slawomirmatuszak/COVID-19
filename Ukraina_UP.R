@@ -158,4 +158,4 @@ load(file = "E:/R/COVID-19/Ukraina.dane/obwody_dzienne.Rda")
 a <- obwody %>%
   filter(data==max(data))%>%
   filter(skumulowane=="aktywni")%>%
-  select(2,11)
+  select(3,11)

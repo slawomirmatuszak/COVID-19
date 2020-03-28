@@ -57,20 +57,44 @@ rm(all_content, all_filenames, all_lists, all_paths)
 #################### obrabiamy dane z UP
 obwody <- obwody %>%
   rename(id=1, suma.chorych=2, suma.zgonow=3, suma.wyzdrowien=4, data=5)%>%
-  mutate(data=gsub(".csv", "", data), id=gsub(" обл.", "", id))
+  mutate(data=gsub(".csv", "", data), id=gsub(" обл.", "", id))%>%
+  mutate(data = ymd(data))
 
-## wgrywamy dane z UP2. Trzeba będzie dodać automatyzm
-obwodyUP2 <- read_xlsx("./Ukraina.dane/UP2/2020.03.26.xlsx")
-# trzeba linie poniżej trzeba wyrzucić. na razie dodaje datę ręcznie
-obwodyUP2$data <- "2020.03.26"
+################## wgrywamy dane z UP2
+
+# read file path
+all_paths <-
+  list.files(path = "./Ukraina.dane/UP2/",
+             pattern = "*.xlsx",
+             full.names = TRUE)
+# read file content
+all_content <-
+  all_paths %>%
+  lapply(read_xlsx)
+# read file name
+all_filenames <- all_paths %>%
+  basename() %>%
+  as.list()
+# combine file content list and file name list
+all_lists <- mapply(c, all_content, all_filenames, SIMPLIFY = FALSE)
+# unlist all lists and change column name
+obwodyUP2 <- rbindlist(all_lists, fill = T)
+# change column name
+names(obwodyUP2)[5] <- "data"
+rm(all_content, all_filenames, all_lists, all_paths)
+
+#poniżej jest ok
 obwodyUP2 <- obwodyUP2 %>%
-  rename(id=1, suma.chorych=2, suma.zgonow=4, suma.wyzdrowien=3, data=5)%>%
-  mutate(id=gsub(" обл.", "", id))
+  rename(id=1, suma.chorych=2, suma.zgonow=4, suma.wyzdrowien=3)%>%
+  mutate(id=gsub(" обл.", "", id)) %>%
+  mutate(data = gsub(".xlsx", "", data)) %>%
+  mutate(data = ymd(data))
 # łączymy obwody z UP i UP2
 obwody <- rbind(obwody, obwodyUP2)
 
+
 obwody <- obwody %>%
-  mutate(data=ymd(data), suma.aktywnych=suma.chorych-suma.zgonow-suma.wyzdrowien)%>%
+  mutate(suma.aktywnych=suma.chorych-suma.zgonow-suma.wyzdrowien)%>%
   left_join(obwody.lista, by="id")%>%
   select(-c(7:9)) %>%
   select(5,1,7:13,2:4,6)
@@ -139,7 +163,8 @@ obwody <- obwody %>%
   mutate(Obwód = gsub("łuhański", "ługański", Obwód))%>%
   mutate(Obwód = gsub("dniepropietrowski", "dniepropetrowski", Obwód))%>%
   mutate(Obwód = gsub("iwanofrakiwski", "iwanofrankiwski", Obwód))
-  
+
+rm(obwodyUP2) 
 
 ## problem w BI rozwiązała zmiana nazwy pliku
 

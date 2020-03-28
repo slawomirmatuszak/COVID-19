@@ -71,7 +71,8 @@ a <- obwody %>%
   filter(data== max(data)) %>%
   group_by(Obwód, Kod, data)%>%
   summarise(
-    liczba = sum(liczba)
+    liczba = sum(liczba),
+    data2 = max(data)+1
   )
 
 ggplot() + 
@@ -80,7 +81,7 @@ ggplot() +
   coord_map(projection = "mercator") + 
   scale_fill_gradient(low = "white", high = "orange") +
   labs(fill= "liczba \nzarażeń", title = "Liczba potwierdzonych przypadków Covid-19",
-       subtitle =  paste( "stan na", format(as.Date(a$data), "%d/%m/%Y"))) +
+       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y"))) +
   geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$liczba) +
   theme_bw()+
   theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
@@ -94,7 +95,8 @@ a <- obwody %>%
   filter(skumulowane == "zgony") %>%
   group_by(Obwód, Kod, data)%>%
   summarise(
-    liczba = sum(liczba)
+    liczba = sum(liczba),
+    data2 = max(data)+1
   )
 
 ggplot() + 
@@ -103,7 +105,7 @@ ggplot() +
   coord_map(projection = "mercator") + 
   scale_fill_gradient(low = "white", high = "red") +
   labs(fill= "liczba \nzgonów", title = "Liczba zgonów z powodu Covid-19",
-       subtitle =  paste( "stan na", format(as.Date(a$data), "%d/%m/%Y")),
+       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
        caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
   geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$liczba) +
   theme_bw()+
@@ -117,7 +119,8 @@ a <- obwody %>%
   filter(data== max(data)) %>%
   group_by(Obwód, Kod, data)%>%
   summarise(
-    ilosc = sum(ilosc)
+    ilosc = sum(ilosc),
+    data2 = max(data)+1
   )
 
 ggplot() + 
@@ -125,8 +128,8 @@ ggplot() +
   geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.001) + 
   coord_map(projection = "mercator") + 
   scale_fill_gradient(low = "white", high = "orange") +
-  labs(fill= "liczba nowych\nprzypadków", title = "Liczba nowych przypadków Covid-19 w ciągu poprzedniej doby",
-       subtitle =  paste( "stan na", format(as.Date(a$data), "%d/%m/%Y")),
+  labs(fill= "liczba nowych\nprzypadków", title = "Liczba nowych przypadków Covid-19 w ciągu ostatniej doby",
+       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
        caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
   geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$ilosc) +
   theme_bw()+

@@ -1,11 +1,13 @@
 ---
-title: "Ukraina Covid"
-author: "Sławomir Matuszak"
-date: "28 03 2020"
+title: "Epidemia Covid-19 na Ukrainie"
+
+date: 
 output:
   html_document: default
-  word_document: default
 ---
+
+data przygotowania raportu: `r format(Sys.time(),"%d %B %Y, %H:%M")`
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -57,6 +59,7 @@ szpitale.oblozenie <- szpitale.oblozenie %>%
 
 ```
 
+
 ```{r}
 a <- obwody %>%
   filter(data== max(data)) %>%
@@ -64,8 +67,25 @@ a <- obwody %>%
   summarise(
     liczba = sum(liczba),
     data2 = max(data)+1
-  )
+  ) %>%
+  arrange(desc(liczba))
 
+b <- obwody %>%
+  filter(data== max(data))%>%
+  filter(skumulowane=="zgony")
+c <- obwody %>%
+  filter(data== max(data))%>%
+  filter(skumulowane=="wyleczeni")
+```
+
+
+***
+
+
+Wedug danych Ministerstwa Zdrowia  z `r unique(format(a$data2, "%d"))` `r if_else(unique(format(a$data2, "%B"))=="marzec", paste("marca"), paste("kwietnia"))` `r unique(format(a$data2, "%Y"))` z godziny 10.00 od początku epidemii na Ukrainie zanotowano w sumie `r sum(a$liczba)` przypadków zarażenia Covid-19, z czego `r sum(b$liczba)` osób zmarło i `r sum(c$liczba)` się wyleczyło.  
+Najwięcej zarażeń jest `r if_else(a[1,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", a[1,1], "m"))` (`r a[1,4]`) oraz `r if_else(a[2,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", a[2,1], "m"))` (`r a[2,4]`) i `r if_else(a[3,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", a[3,1], "m"))` (`r a[3,4]`). 
+
+```{r}
 ggplot() + 
   geom_map(data=a, aes(map_id=Kod, fill=liczba), map=shp1f) + 
   geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.001) + 
@@ -80,6 +100,78 @@ ggplot() +
         panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
         plot.subtitle = element_text(hjust = 0.5))
 
+```
+
+
+***
+
+
+```{r}
+a <- obwody %>%
+  filter(data== max(data)) %>%
+  group_by(Obwód, Kod, data)%>%
+  summarise(
+    ilosc = sum(ilosc),
+    data2 = max(data)+1
+  )
+suma <- sum(a$ilosc)
+
+b <- arrange(a,  desc(ilosc))
+```
+
+W ciągu minionej doby zarejestrowano `r suma` nowych przypadków, najwięcej `r if_else(b[1,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", b[1,1], "m"))` (`r b[1,4]`), `r if_else(b[2,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", b[2,1], "m"))` (`r b[2,4]`) oraz `r if_else(b[3,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", b[3,1], "m"))` (`r b[3,4]`). Ogółem nowe zarażenia zanotowano w `r sum(b$ilosc>0)` obwodach, a w `r sum(b$ilosc==0)` nie stwierdzono nowych przypadków. 
+
+```{r}
+
+ggplot() + 
+  geom_map(data=a, aes(map_id=Kod, fill=ilosc), map=shp1f) + 
+  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.001) + 
+  coord_map(projection = "mercator") + 
+  scale_fill_gradient(low = "white", high = "orange") +
+  labs(fill= "liczba nowych\nprzypadków", title = "Liczba nowych przypadków Covid-19 w ciągu ostatniej doby",
+       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
+       caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
+  geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$ilosc) +
+  theme_bw()+
+  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
+        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))
+
+```
+
+
+***
+```{r}
+a <- obwody %>%
+  filter(data== max(data)) %>%
+  group_by(Obwód, Kod, data, population)%>%
+  summarise(
+    liczba = sum(liczba),
+    data2 = max(data)+1
+  ) %>%
+  mutate(zach.100 = liczba*100000/population)%>%
+  mutate(zach.100 = round(zach.100, 2))
+
+```
+
+
+```{r}
+ggplot() + 
+  geom_map(data=a, aes(map_id=Kod, fill=zach.100), map=shp1f) + 
+  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.001) + 
+  coord_map(projection = "mercator") + 
+  scale_fill_gradient(low = "white", high = "orange") +
+  labs(fill= "liczba\nzarażonych", 
+       title = "Liczba zarażonych Covid-19 na 100 tys. mieszkańców",
+       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
+       caption = "Źródło - Ministerstwo Zdrowia Ukrainy, liczba ludności wg tzw. spisu Dubileta") +
+  geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$zach.100) +
+  theme_bw()+
+  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
+        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))
 ```
 
 
@@ -113,76 +205,6 @@ ggplot() +
 
 ```
 
-
-***
-
-
-```{r}
-a <- obwody %>%
-  filter(data== max(data)) %>%
-  group_by(Obwód, Kod, data)%>%
-  summarise(
-    ilosc = sum(ilosc),
-    data2 = max(data)+1
-  )
-suma <- sum(a$ilosc)
-
-b <- arrange(a,  desc(ilosc))
-```
-
-W ciągu minionej doby zarejestrowano `r suma` nowych przypadków, najwięcej `r if_else(b[1,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", b[1,1], "m"))` (`r b[1,4]`), `r if_else(b[2,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", b[2,1], "m"))` (`r b[2,4]`) oraz `r if_else(b[3,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", b[3,1], "m"))` (`r b[3,4]`). 
-
-```{r include=FALSE}
-if_else(b[1,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", b[1,1], "m"))
-```
-
-
-```{r}
-
-ggplot() + 
-  geom_map(data=a, aes(map_id=Kod, fill=ilosc), map=shp1f) + 
-  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.001) + 
-  coord_map(projection = "mercator") + 
-  scale_fill_gradient(low = "white", high = "orange") +
-  labs(fill= "liczba nowych\nprzypadków", title = "Liczba nowych przypadków Covid-19 w ciągu ostatniej doby",
-       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
-       caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
-  geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$ilosc) +
-  theme_bw()+
-  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
-        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
-        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5))
-
-```
-
-```{r}
-a <- obwody %>%
-  filter(data== max(data)) %>%
-  group_by(Obwód, Kod, data, population)%>%
-  summarise(
-    liczba = sum(liczba),
-    data2 = max(data)+1
-  ) %>%
-  mutate(zach.100 = liczba*100000/population)%>%
-  mutate(zach.100 = round(zach.100, 2))
-
-ggplot() + 
-  geom_map(data=a, aes(map_id=Kod, fill=zach.100), map=shp1f) + 
-  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.001) + 
-  coord_map(projection = "mercator") + 
-  scale_fill_gradient(low = "white", high = "orange") +
-  labs(fill= "liczba\nzarażonych", 
-       title = "Liczba zarażonych Covid-19 na 100 tys. mieszkańców",
-       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
-       caption = "Źródło - Ministerstwo Zdrowia Ukrainy, liczba ludności wg tzw. spisu Dubileta") +
-  geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$zach.100) +
-  theme_bw()+
-  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
-        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
-        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5))
-```
 
 
 ```{r}

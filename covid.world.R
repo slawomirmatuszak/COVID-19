@@ -195,6 +195,8 @@ covid <- covid %>%
 #zostawiam do testowania czy są NA
 a <- filter(covid, is.na(Państwo))
 
+covid <- filter(covid, !is.na(Państwo))
+
 rm(a, chorzy, ofiary, nazwy, Australia, USA, Canada, chiny)
 
 # dla Power BI

@@ -86,7 +86,7 @@ c <- obwody %>%
 
 ### Sytuacja w regionach Ukrainy
 
-Wedug danych Ministerstwa Zdrowia  z `r unique(format(a$data2, "%d"))` `r if_else(unique(format(a$data2, "%B"))=="marzec", paste("marca"), paste("kwietnia"))` `r unique(format(a$data2, "%Y"))` z godziny 10.00 od początku epidemii na Ukrainie zanotowano w sumie `r sum(a$liczba)` przypadków zarażenia Covid-19, z czego `r sum(b$liczba)` osób zmarło i `r sum(c$liczba)` się wyleczyło.  
+Wedug danych Ministerstwa Zdrowia  z `r unique(format(a$data2, "%d"))` `r if_else(unique(format(a$data2, "%B"))=="marzec", paste("marca"), paste("kwietnia"))` `r unique(format(a$data2, "%Y"))` z godziny 9.00 od początku epidemii na Ukrainie zanotowano w sumie `r sum(a$liczba)` przypadków zarażenia Covid-19, z czego `r sum(b$liczba)` osób zmarło i `r sum(c$liczba)` się wyleczyło.  
 Najwięcej zarażeń jest `r if_else(d[1,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", d[1,1], "m"))` (`r d[1,4]`) oraz `r if_else(d[2,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", d[2,1], "m"))` (`r d[2,4]`) i `r if_else(d[3,1]=="Kijów", paste("w Kijowie"), paste0("w obwodzie ", d[3,1], "m"))` (`r d[3,4]`). 
 
 ```{r}
@@ -96,7 +96,7 @@ ggplot() +
   coord_map(projection = "mercator") + 
   scale_fill_gradient(low = "white", high = "orange") +
   labs(fill= "liczba \nzarażeń", title = "Liczba potwierdzonych przypadków Covid-19",
-       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
+       subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
        caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
   geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$liczba, size=3) +
   theme_bw()+
@@ -147,7 +147,7 @@ ggplot() +
   coord_map(projection = "mercator") + 
   scale_fill_gradient(low = "white", high = "orange") +
   labs(fill= "liczba nowych\nprzypadków", title = "Liczba nowych przypadków Covid-19 w ciągu ostatniej doby",
-       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
+       subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
        caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
   geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$ilosc, size=3) +
   theme_bw()+
@@ -186,7 +186,7 @@ ggplot() +
   scale_fill_gradient(low = "white", high = "orange") +
   labs(fill= "liczba\nzarażonych", 
        title = "Liczba zarażonych Covid-19 na 100 tys. mieszkańców",
-       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
+       subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
        caption = "Źródło - Ministerstwo Zdrowia Ukrainy, liczba ludności wg tzw. spisu Dubileta") +
   geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$zach.100, size=3) +
   theme_bw()+
@@ -237,7 +237,7 @@ ggplot() +
   coord_map(projection = "mercator") + 
   scale_fill_gradient(low = "white", high = "red") +
   labs(fill= "liczba \nzgonów", title = "Liczba zgonów z powodu Covid-19",
-       subtitle =  paste( "stan na", format(as.Date(a$data2), "%d/%m/%Y")),
+       subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
        caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
   geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$liczba, size=3) +
   theme_bw()+
@@ -251,7 +251,7 @@ ggplot() +
 
 
 
-```{r include=FALSE}
+```{r include=F}
 # może dodam w późniejszych wersjach
 
 colors <- c("podejrzewani"="orange", "chorzy"="red", "wolne łóżka"="blue")
@@ -259,7 +259,7 @@ ggplot(data=szpitale.oblozenie)+
   geom_bar(aes(x=reorder(Obwód, -liczba), y=liczba, fill=stan), stat="identity")+
   labs(x="obwód", y="liczba łóżek", fill="",
        title = "Sytuacja w szpitalach na Ukrainie",
-       subtitle = "wg stanu na 28 marca",
+       subtitle = "wg stanu na 30 marca",
        caption = "Źródło: Departament Polityki Regionalnej i Decentralizacji Biura Prezydenta Ukrainy.")+
   scale_fill_manual(values = colors)+
   theme_bw()+
@@ -409,7 +409,7 @@ library(scales)
 
 ```{r fig.width=7, fig.height=5, warning=F, message=F}
 a <- filter(przyrost, id<sum(przyrost$Państwo=="Ukraina"))
-kolory <- c("Polska"="red", "Ukraina"="deepskyblue", "Mołdawia"= "gold", "Rosja"="green", "Węgry"="magenta", "Rumunia"="darkgrey", "Słowacja"="brown")
+kolory <- c("Polska"="red", "Ukraina"="deepskyblue", "Mołdawia"= "gold", "Rosja"="green", "Węgry"="magenta", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="orange")
 
 ggplot(data=a, aes(x=id, y=proc.wzrostu.chorych, color=Państwo)) + 
   geom_point(size=4) +

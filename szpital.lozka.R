@@ -14,6 +14,7 @@ load(file = "E:/R/COVID-19/Ukraina.dane/szpitale.Rda")
 szpitale <- szpitale %>%
   rename(wyzdrowieli=wyzrowieli)%>%
   filter(data==max(data))%>%
+  filter(duplicated(adres)==FALSE)%>%
   select(2,3,12)%>%
   unite(id, c(1,2), remove = FALSE) %>%
   mutate(id=gsub(",", "", id))%>%
@@ -28,9 +29,9 @@ load(file = "E:/R/COVID-19/Ukraina.dane/obwody.lista.Rda")
 
 # dodajemy najnowszy plik z danymi
 
-nowy <- read_xlsx("./Ukraina.dane/dobowe.dane.2/2020.03.30.xlsx")
+nowy <- read_xlsx("./Ukraina.dane/dobowe.dane.2/2020.04.01.xlsx")
 a <- nowy %>%
-  rename(liczba.lozek=2, adres=5)%>%
+  rename(liczba.lozek=2, adres=4)%>%
   mutate(liczba.lozek = as.numeric(liczba.lozek)) %>% 
   fill(liczba.lozek, .direction = "down") %>%
   unite(id, c(5,4), remove = FALSE) %>%
@@ -39,11 +40,13 @@ a <- nowy %>%
   mutate(id=gsub(" ", "", id))%>%
   mutate(id=gsub('"', "", id))%>%
   mutate(id=tolower(id))%>%
-  mutate(id=gsub("-", "", id))
+  mutate(id=gsub("-", "", id))%>%
+  # to jeszcze do przetestowania później, czy nie usuwa szpitali z chorymi
+  filter(duplicated(adres)==FALSE)
 
-## testujemy połączenie
-a <- left_join(a, szpitale, by="id")%>%
-  rename(adres=6)
+## zmieniam sposób łączenia, zamiast id na adres
+a <- left_join(a, szpitale, by="adres")
+  #rename(adres=6)
 
 a <- a %>%
   mutate(Obwód=if_else(adres=="с. Софіївська Борщагівка, вул. Яблунева, 26", paste("kijowski"), paste(Obwód))) %>%
@@ -144,13 +147,13 @@ a <- a %>%
 
 # test NA i "NA"
 c <- filter(a, Obwód=="NA") %>%
-  rename(chorzy=9, podejrzani=8)%>%
+  rename(chorzy=8, podejrzani=7)%>%
   filter(chorzy>0|podejrzani>0|liczba.lozek>0)
 
 c <- filter(a, is.na(Obwód)==TRUE)
 
 b <- a %>%
-  rename(podejrzewani=8, chorzy=9) %>%
+  rename(podejrzewani=7, chorzy=8) %>%
   group_by(Obwód)%>%
   summarise(
     liczba.lozek = sum(liczba.lozek, na.rm=TRUE),
@@ -189,6 +192,7 @@ ggplot(data=b)+
 dev.off()
 
 # obłożenie liczbą łóżek
+#przestali publikować, ile jest łóżek
 c <- b %>%
   select(1, 5:7, 3, 4, 10)%>%
   pivot_longer(cols = c(5:7), names_to = "stan", values_to = "liczba") %>%
@@ -203,7 +207,7 @@ load(file = "E:/R/COVID-19/Ukraina.dane/szpitale.oblozenie.Rda")
 
 colors <- c("podejrzewani"="orange", "chorzy"="red", "wolne łóżka"="blue")
 #png("szpitale.png", units="in", width=11, height=6, res=600)
-ggplot(data=c)+
+ggplot(data=filter(c, liczba>0))+
   geom_bar(aes(x=reorder(Obwód, -liczba), y=liczba, fill=stan), stat="identity")+
   labs(x="obwód", y="liczba łóżek", fill="",
        title = "Sytuacja w szpitalach na Ukrainie",

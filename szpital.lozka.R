@@ -28,7 +28,7 @@ load(file = "E:/R/COVID-19/Ukraina.dane/obwody.lista.Rda")
 
 # dodajemy najnowszy plik z danymi
 
-nowy <- read_xlsx("./Ukraina.dane/dobowe.dane.2/2020.03.26.xlsx")
+nowy <- read_xlsx("./Ukraina.dane/dobowe.dane.2/2020.03.30.xlsx")
 a <- nowy %>%
   rename(liczba.lozek=2, adres=5)%>%
   mutate(liczba.lozek = as.numeric(liczba.lozek)) %>% 
@@ -130,9 +130,18 @@ a <- a %>%
   mutate(Obwód=if_else(adres=="м. Малин, вул. Бондарик, 17", paste("żytomierski"), paste(Obwód)))%>%
   mutate(Obwód=if_else(adres=="м. Павлоград, вул. Дніпровська, 541", paste("dniepropietrowski"), paste(Obwód)))%>%
   mutate(Obwód=if_else(adres=="м. Кропивницький, вул. Архітектора Паученка, 45/35", paste("kirowohradzki"), paste(Obwód)))%>%
-  mutate(Obwód=if_else(adres=="м. Івано-Франківськ, вул. Гетьмана Сагайдачного, 66", paste("iwanofrakiwski"), paste(Obwód)))
+  mutate(Obwód=if_else(adres=="м. Івано-Франківськ, вул. Гетьмана Сагайдачного, 66", paste("iwanofrakiwski"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="м. Київ, вул. Петра Запорожця, 26", paste("Kijów"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="м. Берислав, вул. 1 Травня, 124", paste("chersoński"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="м. Кропивницький, вул. Велика Перспективна, 65", paste("kirowohradzki"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="м. Гайсин, вул. В'ячеслава Чорновола, 1", paste("winnicki"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="м. Луцьк, просп. Президента Грушевського, 21", paste("wołyński"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="смт. Тиврів, вул. Шевченка, 2А", paste("winnicki"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="м. Коломия, вул. І. Мазепи, 134", paste("iwanofrakiwski"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="м. Київ, вул. Бердичівська, 1", paste("Kijów"), paste(Obwód)))%>%
+  mutate(Obwód=if_else(adres=="м. Берислав, вул. 1 Травня, 124", paste("chersoński"), paste(Obwód)))
  
-  
+
 # test NA i "NA"
 c <- filter(a, Obwód=="NA") %>%
   rename(chorzy=9, podejrzani=8)%>%
@@ -193,18 +202,18 @@ save(szpitale.oblozenie, file = "./Ukraina.dane/szpitale.oblozenie.Rda")
 load(file = "E:/R/COVID-19/Ukraina.dane/szpitale.oblozenie.Rda")
 
 colors <- c("podejrzewani"="orange", "chorzy"="red", "wolne łóżka"="blue")
-png("szpitale.png", units="in", width=11, height=6, res=300)
+#png("szpitale.png", units="in", width=11, height=6, res=600)
 ggplot(data=c)+
   geom_bar(aes(x=reorder(Obwód, -liczba), y=liczba, fill=stan), stat="identity")+
   labs(x="obwód", y="liczba łóżek", fill="",
        title = "Sytuacja w szpitalach na Ukrainie",
-       subtitle = "wg stanu na 26 marca",
+       subtitle = "wg stanu na 30 marca",
        caption = "Źródło: Departament Polityki Regionalnej i Decentralizacji Biura Prezydenta Ukrainy.")+
   scale_fill_manual(values = colors)+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5), 
         plot.subtitle = element_text(hjust = 0.5) , legend.direction = "horizontal", legend.position=c(0.8,0.9), plot.caption = element_text(hjust = 0, size = 8))
-dev.off()
+#dev.off()
 
 
 lozka.10.tys <- select(b, 1,7)

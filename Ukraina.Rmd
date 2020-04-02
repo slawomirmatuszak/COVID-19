@@ -407,7 +407,7 @@ przyrost <- ECDC %>%
 library(scales)
 ```
 
-```{r fig.width=7, fig.height=5, warning=F, message=F}
+```{r fig.width=7, fig.height=5, warning=T, message=T}
 a <- filter(przyrost, id<sum(przyrost$Państwo=="Ukraina"))
 kolory <- c("Polska"="red", "Ukraina"="deepskyblue", "Mołdawia"= "gold", "Rosja"="green", "Węgry"="magenta", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="orange")
 
@@ -423,5 +423,26 @@ ggplot(data=a, aes(x=id, y=proc.wzrostu.chorych, color=Państwo)) +
   theme_bw()+
   theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), plot.caption = element_text(hjust = 0, size = 8),
         plot.background = element_rect(colour = "grey", size = 0.5))
+```
+
+```{r fig.width=7, fig.height=5, warning=T, message=T}
+#zależność miedzy przyrostem i ilością zachorowań
+kontynenty <- c("Europa", "Azja", "Ameryka Pn")
+a <- covid %>%
+  filter(proc.zach>0, liczba.zachorowan>500, liczba.zachorowan<100000)%>%
+  filter(Kontynenty!="NA")%>%
+  filter(Kontynenty %in% kontynenty)%>%
+  filter(data!="2020-01-22")
+
+ggplot(data=a)+
+  geom_point(aes(x=liczba.zachorowan, y=proc.zach), alpha=0.5)+
+  geom_smooth(aes(x=liczba.zachorowan, y=proc.zach, color=Kontynenty), se=F)+
+  scale_y_continuous(limits = c(0,0.4), labels = label_percent())+
+  #scale_x_continuous(limits = c(100,50000))+
+  facet_wrap(~Kontynenty, scale="free")+
+  theme_bw() 
+  #theme(panel.spacing.x = unit(4, "mm"))
+# wykorzystania  - spacing osi x
+# scale_x_continuous(breaks = seq(0, 4.8, 0.5), minor_breaks = seq(0, 4.8, 0.1))
 ```
 

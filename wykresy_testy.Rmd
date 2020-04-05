@@ -1,0 +1,60 @@
+
+```{r fig.width=7, fig.height=5, warning=T, message=T}
+load(file = "E:/R/COVID-19/covid2.Rda")
+#zależność miedzy przyrostem i ilością zachorowań
+kontynenty <- c("Europa", "Azja", "Ameryka Pn")
+a <- covid %>%
+  filter(proc.zach>0, liczba.zachorowan>0, liczba.zachorowan<150000)%>%
+  filter(Kontynenty!="NA")%>%
+  filter(Kontynenty %in% kontynenty)%>%
+  filter(data!="2020-01-22")
+
+#png("sąsiedzi.png", units="in", width=9, height=5, res=600)
+ggplot(data=a)+
+  geom_point(aes(x=liczba.zachorowan, y=proc.zach), alpha=0.5, shape=20)+
+  geom_smooth(aes(x=liczba.zachorowan, y=proc.zach, color=Kontynenty), size=2)+
+  coord_cartesian(xlim = c(5, 20000), ylim = c(0, 0.3))+
+  scale_y_continuous(labels = label_percent())+
+  labs(x="liczba potwierdzonych przypadków", y="dzienny przyrost przypadków", color="") +
+  facet_wrap(~Kontynenty, ncol = 1)+
+  theme_bw() +
+  theme(legend.position = "none")
+#dev.off()
+
+```
+
+```{r}
+b <- a %>%
+  group_by(data, Kontynenty)%>%
+  summarise(
+    liczba.zachorowan=sum(liczba.zachorowan)
+  )%>%
+  arrange(Kontynenty, data)%>%
+  # trzeba sprawdzić, dlaczego jest problem z USA
+  group_by(Kontynenty)%>%
+ mutate(proc.zach = (liczba.zachorowan/lag(liczba.zachorowan, default = first(liczba.zachorowan)))-1) %>%
+  filter(proc.zach>0&proc.zach<2, liczba.zachorowan>10000)
+
+b <- b[-c(12:15),]
+```
+
+```{r}
+ggplot(b)+
+  geom_path(aes(x=liczba.zachorowan, y=proc.zach, color=Kontynenty))+
+  #coord_cartesian(xlim = c(5, 20000), ylim = c(0, 0.3))+
+  scale_y_continuous(labels = label_percent())+
+  scale_x_continuous(labels = comma) +
+  labs(x="liczba potwierdzonych przypadków", y="dzienny przyrost przypadków", color="") +
+  #facet_wrap(~Kontynenty, ncol = 1)+
+  theme_bw() +
+  theme(legend.position = "top")
+```
+```{r}
+c <- b %>%
+  tail(10)%>%
+  mutate(proc.zach = paste(round(proc.zach, 3)*100, "%"))
+
+  ggtexttable(c, rows = NULL, 
+                        theme = ttheme("lBlueWhite"))
+```
+

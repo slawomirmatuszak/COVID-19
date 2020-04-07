@@ -52,15 +52,15 @@ wykres1 <- szpitale %>%
 
 colors <- c("podejrzani"="orange", "chorzy"="red")
 #png("szpitale.png", units="in", width=11, height=6, res=600)
-ggplot(data=wykres1, aes(x=reorder(Obwód, -liczba), y=liczba))+
+ggplot(data=wykres1, aes(x=reorder(Obwód, -liczba, sum), y=liczba))+
   geom_bar(aes( fill=stan), stat="identity")+
   labs(x="obwód", y="liczba łóżek", fill="",
        title = "Sytuacja w szpitalach na Ukrainie",
-       subtitle = "wg stanu na 30 marca",
+       subtitle = "wg stanu na 6 kwietnia",
        caption = "Źródło: Departament Polityki Regionalnej i Decentralizacji Biura Prezydenta Ukrainy.")+
   scale_fill_manual(values = colors)+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5), 
-        plot.subtitle = element_text(hjust = 0.5) , legend.direction = "horizontal", legend.position=c(0.8,0.9), plot.caption = element_text(hjust = 0, size = 8))
+        plot.subtitle = element_text(hjust = 0.5) , legend.direction = "horizontal", legend.position=c(0.9,0.9), plot.caption = element_text(hjust = 0, size = 8))
 #dev.off()
   

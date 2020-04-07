@@ -160,6 +160,36 @@ ggplot() +
 
 ```
 
+***
+
+```{r}
+a <- obwody %>%
+  filter(data== max(data)|data== max(data)-7)%>%
+  group_by(Obwód, Kod, data)%>%
+  summarise(
+    liczba = sum(liczba)
+  )%>%
+  pivot_wider(names_from = data, values_from = liczba)%>%
+  rename(min=3, max=4)%>%
+  mutate(roznica = max-min)
+```
+```{r}
+ggplot() + 
+  geom_map(data=a, aes(map_id=Kod, fill=roznica), map=shp1f) + 
+  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.001) + 
+  coord_map(projection = "mercator") + 
+  scale_fill_gradient(low = "white", high = "orange") +
+  labs(fill= "liczba nowych\nprzypadków", title = "Liczba nowych przypadków Covid-19 w ciągu ostatniego tygodnia",
+       caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
+  geom_label(data=szpitale.lozka, aes(x=long, y=lat), label=a$roznica, size=3) +
+  theme_bw()+
+  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
+        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5), plot.background = element_rect(colour = "grey", size = 0.5), 
+        plot.caption = element_text(size = 8))
+```
+
 
 ***
 ```{r}
@@ -447,20 +477,37 @@ a <- hopkins %>%
   group_by(Państwo)%>%
   mutate(id=row_number()-1) %>%
   filter(id<sum(a$Państwo=="Ukraina"))%>%
-  ungroup()
+  ungroup()%>%
+  select(5,6,10, 17)%>%
+  filter(Państwo!="Ukraina")
 ```
+
+```{r}
+Ukraina1 <- obwody %>%
+  group_by(data) %>%
+  summarise(
+    liczba.zachorowan = sum(liczba)
+  ) %>%
+  mutate(Państwo = "Ukraina")%>%
+  filter(liczba.zachorowan>100)%>%
+  mutate(id=row_number()-1)
+```
+```{r}
+test <-rbind(a, Ukraina1)
+```
+#### Porównanie wzrostu zarażeń po osiągnięciu poziomu 100 przypadów na Ukrainie, państwach sąsiadujących oraz wybranych państwach europejskich
 
 ```{r fig.width=7, fig.height=7}
 kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
 #png("sąsiedzi.png", units="in", width=9, height=5, res=600)
-ggplot(data=a, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
+ggplot(data=test, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
   geom_bar(stat="identity")+
   facet_wrap(~Państwo, ncol=3) +
   scale_color_manual(values = kolory, aesthetics = "fill")+
-  coord_cartesian(ylim=c(100,max(a$liczba.zachorowan)))+
+  coord_cartesian(ylim=c(100,max(test$liczba.zachorowan)))+
   labs(x="liczba dni od przekroczenia 100 przypadków Covid-19", y="liczba zarażeń",
        title = "Wzrost przypadków Covid-19 na Ukrainie w porównaniu do sąsiadów",
-       subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
        caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
   theme_bw()+
   theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
@@ -474,7 +521,12 @@ ggplot(data=a, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
 ```{r include=F}
 
 kraje <- c("Ukraina", "Niemcy", "Włochy", "Hiszpania", "Wielka Brytania", "Holandia", "Polska", "Belgia", "Szwecja", "Szwajcaria", "Francja")
-a <- covid %>%
+
+
+```
+
+```{r}
+UE <- covid %>%
   filter(liczba.zachorowan>100)%>%
   filter(Państwo %in% kraje)%>%
   # to jest jeszcze do weryfikacji, czy nie będzie generować błędów
@@ -485,30 +537,48 @@ a <- covid %>%
 ```
 
 ```{r}
-a <- a %>%
+UE <- UE %>%
   group_by(Państwo)%>%
   mutate(id=row_number()-1) %>%
-  filter(id<sum(a$Państwo=="Ukraina"))%>%
+  filter(id<sum(UE$Państwo=="Ukraina"))%>%
   ungroup()%>%
   filter(id==max(id))%>%
-  mutate(UA= Państwo=="Ukraina")
+  filter(Państwo!="Ukraina")%>%
+  select(5,9,16)
 
+```
 
+```{r}
+Ukraina2 <- obwody %>%
+  group_by(data) %>%
+  summarise(
+    liczba.zachorowan = sum(liczba)
+  ) %>%
+  mutate(Państwo = "Ukraina")%>%
+  filter(liczba.zachorowan>100)%>%
+  mutate(id=row_number()-1)%>%
+  select(-1)%>%
+  filter(id==max(id))
+```
+
+```{r}
+test2 <- rbind(UE, Ukraina2)
+test2 <-   mutate(test2, UA= Państwo=="Ukraina")
 ```
 
 
 ```{r fig.width=7, fig.height=5}
 kolory2 <- c("TRUE"="orange", "FALSE"="grey")
 
-ggplot(data=a,aes(x=Państwo, y=liczba.zachorowan, fill=UA, group=UA))+
+ggplot(data=test2,aes(x=Państwo, y=liczba.zachorowan, fill=UA, group=UA))+
   geom_point(color="blue", size=2)+
-  geom_point(data=a[10,], color="orange", size=3)+
+  geom_point(data=test2[11,], color="orange", size=3)+
   geom_label_repel(aes(fill=UA, label=Państwo), hjust=-0.1)+
   scale_fill_manual(values = kolory2)+
   labs(x="", y="liczba potwierdzonych przypadków",
        fill="",
-       title = paste("Liczba zarażonych Covid-19 po", max(a$id), "dniach od przekroczenia \npoziomu 100 potwierdzonych przypadków"),
-       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+       title = paste("Liczba zarażonych Covid-19 po", max(test2$id), "dniach od przekroczenia \npoziomu 100 potwierdzonych przypadków"),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University, Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", axis.text.x = element_blank(), axis.ticks.x = element_blank(), plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
         plot.background = element_rect(colour = "grey", size = 0.5))
@@ -516,30 +586,49 @@ ggplot(data=a,aes(x=Państwo, y=liczba.zachorowan, fill=UA, group=UA))+
 
 ***
 
+#### Porównanie wzrostu zarażeń po osiągnięciu poziomu 1000 przypadów na Ukrainie, państwach sąsiadujących oraz wybranych państwach europejskich
 
 ```{r}
-b <- hopkins 
-b <- b %>%
-  filter(liczba.zachorowan>1000)%>%
-  group_by(Państwo)%>%
-  mutate(id=row_number()-1)
+sasiedzi.1000 <- hopkins %>%
+  filter(liczba.zachorowan>1000)
 
-b <-   filter(b, id<sum(b$Państwo=="Ukraina"))
+sasiedzi.1000 <- sasiedzi.1000 %>%
+  group_by(Państwo)%>%
+  mutate(id=row_number()-1) %>%
+  filter(id<sum(sasiedzi.1000$Państwo=="Ukraina"))%>%
+  ungroup()%>%
+  select(5,6,10, 17)%>%
+  filter(Państwo!="Ukraina")
 ```
+
+```{r}
+Ukraina3 <- obwody %>%
+  group_by(data) %>%
+  summarise(
+    liczba.zachorowan = sum(liczba)
+  ) %>%
+  mutate(Państwo = "Ukraina")%>%
+  filter(liczba.zachorowan>1000)%>%
+  mutate(id=row_number()-1)
+```
+```{r}
+test3 <-rbind(sasiedzi.1000, Ukraina3)
+```
+
 
 ```{r fig.width=7, fig.height=7}
 kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
 #png("sąsiedzi.png", units="in", width=9, height=5, res=600)
-ggplot(data=b, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
+ggplot(data=test3, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
   geom_bar(stat="identity")+
   facet_wrap(~Państwo, ncol=2) +
   scale_color_manual(values = kolory, aesthetics = "fill")+
-  coord_cartesian(ylim=c(1000,max(b$liczba.zachorowan)))+
+  coord_cartesian(ylim=c(1000,max(test3$liczba.zachorowan)))+
   #scale_x_continuous(breaks=seq(0, max(b$id), by = 1))+
   labs(x="liczba dni od przekroczenia 1000 przypadków Covid-19", y="liczba zarażeń",
        title = "Wzrost przypadków Covid-19 na Ukrainie w porównaniu do sąsiadów",
-       subtitle = paste( "stan na", format(as.Date(max(b$data)), "%d/%m/%Y")),
-       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+       #subtitle = paste( "stan na", format(as.Date(max(test3$data)), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University, Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
         plot.background = element_rect(colour = "grey", size = 0.5))
@@ -547,11 +636,17 @@ ggplot(data=b, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
 ```
 
 
+***
+
 
 ```{r include=F}
 
 kraje <- c("Ukraina", "Niemcy", "Włochy", "Hiszpania", "Wielka Brytania", "Holandia", "Polska", "Belgia", "Szwecja", "Szwajcaria", "Francja")
-a <- covid %>%
+```
+
+
+```{r}
+UE2 <- covid %>%
   filter(liczba.zachorowan>1000)%>%
   filter(Państwo %in% kraje)%>%
   # to jest jeszcze do weryfikacji, czy nie będzie generować błędów
@@ -562,30 +657,49 @@ a <- covid %>%
 ```
 
 ```{r}
-a <- a %>%
+UE2 <- UE2 %>%
   group_by(Państwo)%>%
   mutate(id=row_number()-1) %>%
-  filter(id<sum(a$Państwo=="Ukraina"))%>%
+  filter(id<sum(UE2$Państwo=="Ukraina"))%>%
   ungroup()%>%
   filter(id==max(id))%>%
-  mutate(UA= Państwo=="Ukraina")
-
+  filter(Państwo!="Ukraina")%>%
+  select(5,9,16)
 
 ```
+
+```{r}
+Ukraina3 <- obwody %>%
+  group_by(data) %>%
+  summarise(
+    liczba.zachorowan = sum(liczba)
+  ) %>%
+  mutate(Państwo = "Ukraina")%>%
+  filter(liczba.zachorowan>1000)%>%
+  mutate(id=row_number()-1)%>%
+  select(-1)%>%
+  filter(id==max(id))
+```
+
+```{r}
+test3 <- rbind(UE2, Ukraina3)
+test3 <-   mutate(test3, UA= Państwo=="Ukraina")
+```
+
 
 
 ```{r fig.width=7, fig.height=5}
 kolory2 <- c("TRUE"="orange", "FALSE"="grey")
 
-ggplot(data=a,aes(x=Państwo, y=liczba.zachorowan, fill=UA, group=UA))+
+ggplot(data=test3,aes(x=Państwo, y=liczba.zachorowan, fill=UA, group=UA))+
   geom_point(color="blue", size=2)+
-  geom_point(data=a[10,], color="orange", size=3)+
+  geom_point(data=test3[11,], color="orange", size=3)+
   geom_label_repel(aes(fill=UA, label=Państwo), hjust=-0.1)+
   scale_fill_manual(values = kolory2)+
   labs(x="", y="liczba potwierdzonych przypadków",
        fill="",
-       title = paste("Liczba zarażonych Covid-19 po", max(a$id), "dniach od przekroczenia \npoziomu 1000 potwierdzonych przypadków"),
-       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+       title = paste("Liczba zarażonych Covid-19 po", max(test3$id), "dniach od przekroczenia \npoziomu 1000 potwierdzonych przypadków"),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University, Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", axis.text.x = element_blank(), axis.ticks.x = element_blank(), plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
         plot.background = element_rect(colour = "grey", size = 0.5))

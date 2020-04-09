@@ -201,7 +201,7 @@ a <- obwody %>%
     data2 = max(data)+1
   ) %>%
   mutate(zach.100 = liczba*100000/population)%>%
-  mutate(zach.100 = round(zach.100, 2))
+  mutate(zach.100 = round(zach.100, 1))
 b <- a %>%
   arrange(desc(zach.100))
 
@@ -515,6 +515,58 @@ ggplot(data=test, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
 #dev.off()
 ```
 
+***
+
+```{r}
+a <- hopkins %>%
+  filter(liczba.zachorowan>100)%>%
+  group_by(Państwo)%>%
+  mutate(id=row_number()-1)
+a <- a %>%
+  filter(id<sum(a$Państwo=="Ukraina"))%>%
+  ungroup()%>%
+  select(5,16,10, 17)%>%
+  filter(Państwo!="Ukraina")
+```
+
+
+```{r}
+Ukraina2 <- obwody %>%
+  group_by(data) %>%
+  summarise(
+    liczba.zachorowan = sum(liczba)
+  ) %>%
+  mutate(Państwo = "Ukraina")%>%
+  mutate(proc.zach = (liczba.zachorowan/lag(liczba.zachorowan, default = first(liczba.zachorowan)))-1) %>%
+  filter(liczba.zachorowan>100) %>%
+  mutate(id=row_number()-1)%>%
+  select(1,4,3,5)
+```
+```{r}
+test2 <-rbind(a, Ukraina2)
+```
+
+```{r message=F}
+kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
+png("dynamika.png", units="in", width=9, height=5, res=600)
+ggplot(data=test2, aes(x=id, y=proc.zach, color=Państwo))+
+  #geom_point()+
+  geom_smooth(se=F)+
+  #facet_wrap(~Państwo, ncol=3) +
+  scale_color_manual(values = kolory, aesthetics = "color")+
+  coord_cartesian(ylim=c(0,0.5))+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  labs(x="liczba dni od przekroczenia 100 przypadków Covid-19", y="dzienny wzrost",
+       color="",
+       title = "Dynamika wzrostu przypadków Covid-19 na Ukrainie w porównaniu do sąsiadów",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(legend.position = "right", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+dev.off()
+```
+
 
 ***
 
@@ -621,7 +673,7 @@ kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"
 #png("sąsiedzi.png", units="in", width=9, height=5, res=600)
 ggplot(data=test3, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
   geom_bar(stat="identity")+
-  facet_wrap(~Państwo, ncol=2) +
+  facet_wrap(~Państwo, ncol=3) +
   scale_color_manual(values = kolory, aesthetics = "fill")+
   coord_cartesian(ylim=c(1000,max(test3$liczba.zachorowan)))+
   #scale_x_continuous(breaks=seq(0, max(b$id), by = 1))+
@@ -635,6 +687,57 @@ ggplot(data=test3, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
 #dev.off()
 ```
 
+***
+
+
+```{r}
+a <- hopkins %>%
+  filter(liczba.zachorowan>1000)%>%
+  group_by(Państwo)%>%
+  mutate(id=row_number()-1)
+a <- a %>%
+  filter(id<sum(a$Państwo=="Ukraina"))%>%
+  ungroup()%>%
+  select(5,16,10, 17)%>%
+  filter(Państwo!="Ukraina")
+```
+
+
+```{r}
+Ukraina2 <- obwody %>%
+  group_by(data) %>%
+  summarise(
+    liczba.zachorowan = sum(liczba)
+  ) %>%
+  mutate(Państwo = "Ukraina")%>%
+  mutate(proc.zach = (liczba.zachorowan/lag(liczba.zachorowan, default = first(liczba.zachorowan)))-1) %>%
+  filter(liczba.zachorowan>1000) %>%
+  mutate(id=row_number()-1)%>%
+  select(1,4,3,5)
+```
+```{r}
+test2 <-rbind(a, Ukraina2)
+```
+
+```{r message=F}
+kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
+#png("sąsiedzi.png", units="in", width=9, height=5, res=600)
+ggplot(data=test2, aes(x=id, y=proc.zach, color=Państwo))+
+  # geom_point()+
+  geom_smooth(method = "lm", se=F)+
+  #facet_wrap(~Państwo, ncol=3) +
+  scale_color_manual(values = kolory, aesthetics = "color")+
+  #coord_cartesian(ylim=c(0,0.5))+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  labs(x="liczba dni od przekroczenia 1000 przypadków Covid-19", y="dzienny wzrost",
+       color="",
+       title = "Dynamika wzrostu przypadków Covid-19 na Ukrainie w porównaniu do sąsiadów",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(legend.position = "right", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+```
 
 ***
 

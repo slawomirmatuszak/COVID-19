@@ -32,9 +32,17 @@ duze.UE <- covid %>%
   filter(liczba.ofiar>50) 
 
 duze.UE <- duze.UE %>%
-  filter(Country.Region=="Italy"|Country.Region=="Germany"|Country.Region=="France"|Country.Region=="Spain") %>%
+  filter(Country.Region=="Italy"|Country.Region=="Germany"|Country.Region=="Poland"|Country.Region=="France"|Country.Region=="Spain") %>%
   group_by(Country.Region) %>%
   mutate(id=row_number()-1)
+
+# liczba zachorowań
+ggplot()+
+  geom_path(data=duze.UE, aes(x=id, y=liczba.zachorowan, color=Państwo),size=2, alpha=0.8)+
+  coord_cartesian(xlim=c(0,20))+
+  labs(y = "liczba zachorowań", x="liczba dni od 50-tego zgonu", color=NULL)+
+  theme_bw()+
+  theme(legend.position = "top")->p0
 
 # liczba zgonóW 
 ggplot()+
@@ -42,14 +50,24 @@ ggplot()+
   coord_cartesian(xlim=c(0,20), ylim=c(0,8000))+
   labs(y = "liczba zgonów", x="liczba dni od 50-tego zgonu", color=NULL)+
   theme_bw()+
-  theme(legend.position = "top")
+  theme(legend.position = "top")->p1
 
 # śmiertelność 
 ggplot()+
   geom_path(data=duze.UE, aes(x=id, y=smiertelnosc, color=Państwo),size=2, alpha=0.8)+
   geom_point(data=duze.UE, aes(x=id, y=smiertelnosc, color=Państwo),size=3, alpha=0.8)+
-  coord_cartesian(xlim=c(0,30))+
-  scale_y_continuous(labels = label_percent()) +
+  coord_cartesian(xlim=c(0,20))+
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
   labs(y = "śmiertelność", x="liczba dni od 50-tego zgonu", color=NULL)+
   theme_bw()+
-  theme(legend.position = "top")
+  theme(legend.position = "top") ->p2
+
+library(gridExtra)
+png("duze.ue.png", units="in", width=9, height=6, res=600)
+grid.arrange(p0, p1,p2, ncol=3)
+dev.off()
+
+library(ggpubr)
+png("duze.ue.png", units="in", width=9, height=6, res=600)
+ggarrange(p0, p1, p2, ncol=3, nrow=1, common.legend = TRUE, legend="top")
+dev.off()

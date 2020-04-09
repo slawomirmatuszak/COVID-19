@@ -127,7 +127,8 @@ covid <- covid %>%
                                                                    if_else(Province.State=="Gibraltar", paste("Gibraltar"),
                                                                            if_else(Province.State=="French Polynesia", paste("French Polynesia"),
                                                                                    if_else(Province.State=="Fench Guiana", paste("French Guiana"),
-                                                                                           as.character(Country.Region))))))))))
+                                                                                           if_else(Province.State=="Greenland", paste("Greenland"),
+                                                                                           as.character(Country.Region)))))))))))
 
 covid.chiny <- bind_rows(covid, Australia, USA, Canada, hubei, chiny.bez.hubei)
 save(covid.chiny, file = "covid.chiny2.Rda")
@@ -141,6 +142,11 @@ nazwy <- nazwy %>%
   select(1:3, 5, 9) %>%
   rename(Country.Region = Country) %>%
   mutate(Country.Region=as.factor(Country.Region))
+
+francja <- filter(covid, Country.Region=="France")%>%
+  mutate(Country.Region = if_else(Province.State=="", paste("France"), paste(Province.State)))
+covid <- filter(covid, Country.Region!="France")
+covid <- bind_rows(covid, francja)
 
 covid <- covid %>%
   mutate(Country.Region = gsub("Iran", "Iran, Islamic Republic of", Country.Region),
@@ -169,6 +175,7 @@ covid <- covid %>%
          Country.Region = gsub("Syria", "Syrian Arab Republic", Country.Region),
          Country.Region = gsub("Laos", "Lao People’s Democratic Republic", Country.Region),
          Country.Region = gsub("Burma", "Myanmar", Country.Region),
+         Country.Region = gsub("Reunion", "Réunion", Country.Region),
          Country.Region = gsub("Libya", "Libyan Arab Jamahiriya", Country.Region))
 
 covid <- left_join(covid, nazwy, by="Country.Region")
@@ -182,7 +189,7 @@ covid <- covid %>%
                                                          if_else(Państwo=="Turcja"|Państwo=="Gruzja"|Państwo=="Azerbejdżan"|Państwo=="Armenia", paste("Turcja i Kaukaz"),
                                                                  if_else(Państwo=="Kazachstan"|Państwo=="Turkmenistan"|Państwo=="Tadżykistan"|Państwo=="Kirgistan"|Państwo=="Uzbekistan", paste("Azja Środkowa"),
                                                                          if_else(Państwo=="Rosja", paste("Rosja"),
-                                                                                 if_else(Państwo=="Niemcy", paste("Niemcy"),
+                                                                                 if_else(Państwo=="Niemcy"|Państwo=="Hiszpania"|Państwo=="Włochy"|Państwo=="Francja", paste("duże kraje UE"),
                                                                                          paste("Pozostałe")))))))))))
 
 covid <- covid %>%
@@ -197,7 +204,7 @@ a <- filter(covid, is.na(Państwo))
 
 covid <- filter(covid, !is.na(Państwo))
 
-rm(a, chorzy, ofiary, nazwy, Australia, USA, Canada, chiny)
+rm(a, chorzy, ofiary, nazwy, Australia, USA, Canada, chiny, francja)
 
 # dla Power BI
 save(covid, file = "covid2.Rda")

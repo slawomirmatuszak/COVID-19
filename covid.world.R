@@ -18,7 +18,9 @@ ofiary <- read.csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/ma
 ofiary <- ofiary %>%
   pivot_longer(cols = c(5:length(names(ofiary))), names_to = "data", values_to = "liczba.ofiar") %>%
   mutate(data=gsub("X", "", data), data=mdy(data))%>%
-  unite(indeks, Province.State, Country.Region, data, sep = "_", remove = FALSE)
+  unite(indeks, Province.State, Country.Region, data, sep = "_", remove = FALSE) %>%
+  mutate(liczba.ofiar = if_else(indeks=="_Germany_2020-04-11", paste("2871"), paste(liczba.ofiar)))%>%
+  mutate(liczba.ofiar = as.numeric(liczba.ofiar))
 
 covid <- left_join(chorzy, select(ofiary, 1,7), by="indeks")
 
@@ -206,6 +208,12 @@ covid <- filter(covid, !is.na(Państwo))
 
 rm(a, chorzy, ofiary, nazwy, Australia, USA, Canada, chiny, francja)
 
+covid.1000 <- covid %>%
+  filter(liczba.zachorowan>1000)%>%
+  arrange(Country.Region, data)%>%
+  group_by(Country.Region)%>%
+  mutate(id=row_number()-1)
+
 # dla Power BI
-save(covid, file = "covid2.Rda")
+save(covid, covid.1000, file = "covid2.Rda")
 load(file = "E:/R/COVID-19/covid2.Rda")

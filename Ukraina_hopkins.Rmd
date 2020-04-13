@@ -405,6 +405,7 @@ c <- b%>%
 ```
 
 ```{r fig.width=7, fig.height=7}
+#png("sąsiedzi.png", units="in", width=7, height=7, res=600)
 ggplot(data = sasiedzi) +
   geom_sf(aes(fill=c$zach.100)) +
   coord_sf(xlim = c(13, 43), ylim = c(43, 58), expand = F) +
@@ -420,6 +421,7 @@ ggplot(data = sasiedzi) +
         legend.direction = "horizontal", legend.position=c(0.15,0.9), plot.caption = element_text(size = 8),
          plot.background = element_rect(colour = "grey", size = 0.5), plot.title = element_text(hjust = 0.5),
         plot.subtitle = element_text(hjust = 0.5))
+#dev.off()
 ```
 
 ***
@@ -504,6 +506,7 @@ ggplot(data=test, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
   geom_bar(stat="identity")+
   facet_wrap(~Państwo, ncol=3) +
   scale_color_manual(values = kolory, aesthetics = "fill")+
+  geom_hline(yintercept = max(Ukraina1$liczba.zachorowan), linetype="dashed", color="mediumblue")+
   coord_cartesian(ylim=c(100,max(test$liczba.zachorowan)))+
   labs(x="liczba dni od przekroczenia 100 przypadków Covid-19", y="liczba zarażeń",
        title = "Wzrost przypadków Covid-19 na Ukrainie w porównaniu do sąsiadów",
@@ -523,10 +526,11 @@ a <- hopkins %>%
   group_by(Państwo)%>%
   mutate(id=row_number()-1)
 a <- a %>%
-  filter(id<sum(a$Państwo=="Ukraina"))%>%
+  #filter(id<sum(a$Państwo=="Ukraina"))%>%
   ungroup()%>%
   select(5,16,10, 17)%>%
   filter(Państwo!="Ukraina")
+# to jeszcze do przemyślenia, którą metodę wybrać. Filtrować dane czy na poziomie coord_cartesian
 ```
 
 
@@ -548,13 +552,13 @@ test2 <-rbind(a, Ukraina2)
 
 ```{r message=F}
 kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
-png("dynamika.png", units="in", width=9, height=5, res=600)
+#png("dynamika.png", units="in", width=9, height=5, res=600)
 ggplot(data=test2, aes(x=id, y=proc.zach, color=Państwo))+
   #geom_point()+
   geom_smooth(se=F)+
   #facet_wrap(~Państwo, ncol=3) +
   scale_color_manual(values = kolory, aesthetics = "color")+
-  coord_cartesian(ylim=c(0,0.5))+
+  coord_cartesian(ylim=c(0,0.5), xlim = c(0, sum(test2$Państwo=="Ukraina")-1))+
   scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
   labs(x="liczba dni od przekroczenia 100 przypadków Covid-19", y="dzienny wzrost",
        color="",
@@ -564,7 +568,7 @@ ggplot(data=test2, aes(x=id, y=proc.zach, color=Państwo))+
   theme_bw()+
   theme(legend.position = "right", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
         plot.background = element_rect(colour = "grey", size = 0.5))
-dev.off()
+#dev.off()
 ```
 
 
@@ -676,6 +680,7 @@ ggplot(data=test3, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
   facet_wrap(~Państwo, ncol=3) +
   scale_color_manual(values = kolory, aesthetics = "fill")+
   coord_cartesian(ylim=c(1000,max(test3$liczba.zachorowan)))+
+  geom_hline(yintercept = max(Ukraina3$liczba.zachorowan), linetype="dashed", color="mediumblue")+
   #scale_x_continuous(breaks=seq(0, max(b$id), by = 1))+
   labs(x="liczba dni od przekroczenia 1000 przypadków Covid-19", y="liczba zarażeń",
        title = "Wzrost przypadków Covid-19 na Ukrainie w porównaniu do sąsiadów",
@@ -696,7 +701,7 @@ a <- hopkins %>%
   group_by(Państwo)%>%
   mutate(id=row_number()-1)
 a <- a %>%
-  filter(id<sum(a$Państwo=="Ukraina"))%>%
+  #filter(id<sum(a$Państwo=="Ukraina"))%>%
   ungroup()%>%
   select(5,16,10, 17)%>%
   filter(Państwo!="Ukraina")
@@ -716,18 +721,20 @@ Ukraina2 <- obwody %>%
   select(1,4,3,5)
 ```
 ```{r}
-test2 <-rbind(a, Ukraina2)
+test4 <-rbind(a, Ukraina2) %>%
+  filter(Państwo!="Węgry")
+# 11 kwietnia już chyba będzie można dodać Białoruś.
 ```
 
-```{r message=F}
+```{r message=F, warning=F}
 kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
 #png("sąsiedzi.png", units="in", width=9, height=5, res=600)
-ggplot(data=test2, aes(x=id, y=proc.zach, color=Państwo))+
-  # geom_point()+
-  geom_smooth(method = "lm", se=F)+
+ggplot(data=test4, aes(x=id, y=proc.zach, color=Państwo))+
+  #geom_point()+
+  geom_smooth(se=F)+
   #facet_wrap(~Państwo, ncol=3) +
   scale_color_manual(values = kolory, aesthetics = "color")+
-  #coord_cartesian(ylim=c(0,0.5))+
+  coord_cartesian(xlim=c(0,sum(test4$Państwo=="Ukraina")-1))+
   scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
   labs(x="liczba dni od przekroczenia 1000 przypadków Covid-19", y="dzienny wzrost",
        color="",
@@ -737,6 +744,7 @@ ggplot(data=test2, aes(x=id, y=proc.zach, color=Państwo))+
   theme_bw()+
   theme(legend.position = "right", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
         plot.background = element_rect(colour = "grey", size = 0.5))
+#dev.off()
 ```
 
 ***

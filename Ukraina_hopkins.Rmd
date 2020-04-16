@@ -6,7 +6,7 @@ output:
   html_document: default
 ---
 
-data wygenerowania raportu: `r format(Sys.time(),"%d %B %Y, %H:%M")`
+data wygenerowania raportu: `r format(Sys.time(),"%d %B %Y")`
 
 
 ```{r setup, include=FALSE}
@@ -294,7 +294,8 @@ a <- obwody %>%
 
 nazwy <- a %>%
   filter(data==max(data))%>%
-  filter(liczba.zachorowan>300)%>%
+  arrange(desc(liczba.zachorowan))%>%
+  head(6)%>%
   select(2)%>%
   pull()
 
@@ -304,24 +305,27 @@ a <- a %>%
   group_by(Obwód)%>%
   mutate(dzien=row_number())%>%
   mutate(proc.zach=round(proc.zach, 3))%>%
-  mutate(Obwód = if_else(Obwód!="Kijów", paste("obw.", Obwód), paste("Kijów")))
+  mutate(liczba = max(liczba.zachorowan))%>%
+  mutate(Obwód = if_else(Obwód!="Kijów", paste0("obw. ", Obwód, " (",liczba, ")"), paste0("Kijów"," (", liczba, ")")))
 
 ```
 
 
 ```{r message=F, res=300}
+png("obowdy6.png", units="in", width=9, height=7, res=600)
 ggplot(a, aes(x=dzien, y=proc.zach, color=Obwód))+
   geom_point(size=2, alpha=0.8)+
-  facet_wrap(~Obwód, ncol = 2)+
+  facet_wrap(~reorder(Obwód, -liczba), ncol = 3)+
   scale_y_continuous(labels = percent_format(accuracy = 5L))+
   geom_smooth(method = "lm", se=F, size=2)+
+  geom_hline(yintercept = 0.1, size=0.5, linetype="dashed", color="blue")+
   labs(x= "ilość dni od przekroczenia 100 zarażeń", y= "dzienny przyrost nowych przypadków",
-       title = "Dynamika zarażeń w obwodach, które przekroczyły 300 przypadków",
+       title = "Dynamika zarażeń w sześciu najbardziej zarażonych obwodach",
        caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", plot.title = element_text(hjust = 0.5), 
         plot.background = element_rect(colour = "grey", size = 0.5), plot.caption = element_text(size = 8))
-
+dev.off()
 ```
 
 ***

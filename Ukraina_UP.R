@@ -184,3 +184,16 @@ a <- obwody %>%
   filter(data==max(data))%>%
   filter(skumulowane=="aktywni")%>%
   select(3,11)
+
+# dzienny przyrost
+a <- obwody %>%
+  group_by(data)%>%
+  summarise(
+    zarazeni=sum(liczba)
+  )%>%
+  mutate(proc.zach = (zarazeni/lag(zarazeni, default = first(zarazeni)))-1)%>%
+  filter(zarazeni>1000)
+
+ggplot(a, aes(x=data, y=proc.zach))+
+  geom_point()+
+  geom_smooth(method = "lm")

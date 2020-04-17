@@ -17,7 +17,7 @@ png("szwecja.png", units="in", width=9, height=6, res=600)
 ggplot(szwecja)+
   geom_path(aes(x=id, y=liczba.zachorowan, color=Państwo), size=2)+
   scale_x_continuous(limits = c(0,maks))+
-  scale_y_continuous(limits = c(1000,10000))+
+  scale_y_continuous(limits = c(1000,100000))+
   labs(x="ilość dni od przekroczenia 1000 zarażeń", y="liczba potwierdzonych zarażeń")+
   theme_bw()
 dev.off()
@@ -38,17 +38,17 @@ maks <- szwecja %>%
   pull()%>%
   max()
 
-#png("szwecja.PL.png", units="in", width=9, height=6, res=600)
+png("szwecja.PL.png", units="in", width=9, height=6, res=600)
 kolory <- c("Polska"="red4", "Szwecja"="blue")
 ggplot(szwecja)+
   geom_path(aes(x=id, y=liczba.zachorowan, color=Państwo), size=2)+
   scale_x_continuous(limits = c(0,maks))+
-  scale_y_continuous(limits = c(1000,11000))+
+  scale_y_continuous(limits = c(1000,12000))+
   scale_color_manual(values = kolory)+
   labs(x="ilość dni od przekroczenia 1000 zarażeń", y="liczba potwierdzonych zarażeń")+
   theme_bw()+
   theme(legend.position = c(0.9,0.1))
-#dev.off()
+dev.off()
 
 png("szwecja.PL.zgony.png", units="in", width=9, height=6, res=600)
 kolory <- c("Polska"="red4", "Szwecja"="blue")

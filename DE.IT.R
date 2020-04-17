@@ -63,11 +63,26 @@ ggplot()+
   theme(legend.position = "top") ->p2
 
 library(gridExtra)
-png("duze.ue.png", units="in", width=9, height=6, res=600)
+png("duze.ue2.png", units="in", width=9, height=6, res=600)
 grid.arrange(p0, p1,p2, ncol=3)
 dev.off()
 
 library(ggpubr)
-png("duze.ue.png", units="in", width=9, height=6, res=600)
+png("duze.ue2.png", units="in", width=9, height=6, res=600)
 ggarrange(p0, p1, p2, ncol=3, nrow=1, common.legend = TRUE, legend="top")
+dev.off()
+
+UE.1000 <- covid%>%
+  filter(liczba.zachorowan>1000)%>%
+  filter(Country.Region=="Italy"|Country.Region=="Germany"|Country.Region=="Poland"|Country.Region=="France"|Country.Region=="Spain"|Country.Region=="Czechia"|Country.Region=="Sweden") %>%
+  group_by(Country.Region) %>%
+  mutate(id=row_number()-1)
+
+png("duze.ue.1000.png", units="in", width=9, height=6, res=600)
+ggplot()+
+  geom_path(data=UE.1000, aes(x=id, y=liczba.zachorowan, color=Państwo),size=2, alpha=0.8)+
+  coord_cartesian(xlim=c(0,30), ylim=c(0,80000))+
+  labs(y = "liczba zakażeń", x="liczba dni od 1000 zakażeń", color=NULL)+
+  theme_bw()+
+  theme(legend.position = "top")
 dev.off()

@@ -338,6 +338,7 @@ ggplot(a, aes(x=dzien, y=proc.zach, color=Obwód))+
        caption = "Źródło: Ministerstwo Zdrowia Ukrainy",
        linetype = "")+
   guides(color=FALSE)+
+  scale_color_brewer(palette="Dark2")+
   scale_linetype_manual(name = "", values = "dashed", labels = "średnia przyrostu zakażeń na Ukrainie") +
   theme_bw()+
   theme(legend.position = "top", plot.title = element_text(hjust = 0.5), 
@@ -580,9 +581,9 @@ Ukraina1 <- obwody %>%
 ```{r}
 test <-rbind(a, Ukraina1)
 ```
-#### Porównanie wzrostu zarażeń po osiągnięciu poziomu 100 przypadów na Ukrainie, państwach sąsiadujących oraz wybranych państwach europejskich
 
-```{r fig.width=7, fig.height=7}
+
+```{r fig.width=7, fig.height=7, include=F}
 kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
 #png("sąsiedzi.png", units="in", width=9, height=5, res=600)
 ggplot(data=test, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
@@ -633,7 +634,7 @@ Ukraina2 <- obwody %>%
 test2 <-rbind(a, Ukraina2)
 ```
 
-```{r message=F}
+```{r message=F, include=F}
 kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
 #png("dynamika.png", units="in", width=9, height=5, res=600)
 ggplot(data=test2, aes(x=id, y=proc.zach, color=Państwo))+
@@ -706,7 +707,7 @@ test2 <-   mutate(test2, UA= Państwo=="Ukraina")
 ```
 
 
-```{r fig.width=7, fig.height=5}
+```{r fig.width=7, fig.height=5, include=F}
 kolory2 <- c("TRUE"="orange", "FALSE"="grey")
 
 ggplot(data=test2,aes(x=Państwo, y=liczba.zachorowan, fill=UA, group=UA))+
@@ -752,7 +753,8 @@ Ukraina3 <- obwody %>%
 ```
 ```{r}
 test3 <-rbind(sasiedzi.1000, Ukraina3)%>%
-  filter(Państwo!="Węgry")
+  filter(Państwo!="Węgry")%>%
+  filter(Państwo!="Słowacja")
 ```
 
 
@@ -806,7 +808,7 @@ Ukraina2 <- obwody %>%
 ```
 ```{r}
 test4 <-rbind(a, Ukraina2) %>%
-  filter(Państwo!="Węgry")
+  filter(Państwo!="Węgry"&Państwo!="Słowacja")
 # 11 kwietnia już chyba będzie można dodać Białoruś.
 ```
 

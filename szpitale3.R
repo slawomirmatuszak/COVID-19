@@ -267,6 +267,9 @@ szpitale.obwody <- szpitale2 %>%
   mutate(data=ymd(zvit_date))
 
 save(szpitale.obwody, file = "szpitale.obwody.Rda")
+
+#trzeba potem dodać pracowników medycznych
+
 ################################################################################################## 
 ################################################################################################## 
 
@@ -385,3 +388,135 @@ ggplot(b, aes(x="", y=zgony, fill=add_conditions)) +
         axis.ticks = element_blank(),
         plot.title = element_text(hjust = 0.5),
         legend.position = "bottom")
+
+### pracownicy medyczni ogółem
+
+a <- szpitale2%>%
+  group_by(is_medical_worker)%>%
+  summarise_if(is.numeric, funs(sum))
+
+ggplot(a, aes(x="", y=new_confirm, fill=is_medical_worker)) +
+  geom_col() +
+  geom_label(aes(label = new_confirm), 
+             position = position_stack(vjust = 0.5), show.legend = FALSE, color="white", fontface='bold')+
+  coord_polar(theta = "y") + 
+  labs(fill="", y="",x="", title = "Zgony")+
+  theme_bw()+
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        panel.grid=element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+
+# pracownicy obwody
+b <- szpitale2%>%
+  group_by(registration_area, is_medical_worker)%>%
+  summarise_if(is.numeric, funs(sum))
+
+png("./Ukraina.dane/wykresy/wykres3.png", units="in", width=10, height=15, res=600)
+ggplot(b, aes(x=registration_area, y=new_confirm, fill=is_medical_worker)) +
+  geom_col(position = position_dodge()) +
+  #geom_label(aes(label = new_confirm), 
+             #position = position_stack(vjust = 0.5), show.legend = FALSE, color="white", fontface='bold')+
+  labs(fill="", y="",x="", title = "Zgony")+
+  #facet_wrap(~registration_area, ncol=3)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90),  plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+dev.off()
+
+## odsetek hospitalizowanych
+
+a <- szpitale.obwody%>%
+  filter(izolacja=="szpital")%>%
+  group_by(Obwód, Kod, long, lat)%>%
+  summarise_if(is.numeric, funs(sum))%>%
+  mutate(aktywni.szpital=new_confirm-new_death-new_recover)%>%
+  select(1:4, 10)
+
+b <- szpitale.obwody%>%
+  filter(izolacja=="izolacja")%>%
+  group_by(Obwód, Kod, long, lat)%>%
+  summarise_if(is.numeric, funs(sum))%>%
+  mutate(aktywni.iz=new_confirm-new_death-new_recover)%>%
+  ungroup()%>%
+  select(2, 10)%>%
+  left_join(a, by="Kod")%>%
+  mutate(suma=aktywni.iz+aktywni.szpital)%>%
+  mutate(proc.hosp = aktywni.szpital/suma)%>%
+  mutate(proc.hosp = if_else(proc.hosp<0, 0, proc.hosp))
+
+png("./Ukraina.dane/wykresy/hospitalizacja.png", units="in", width=9, height=7, res=600)
+ggplot() + 
+  geom_map(data=b, aes(map_id=Kod, fill=proc.hosp), map=shp1f) + 
+  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.5) + 
+  coord_map(projection = "mercator") + 
+  scale_fill_gradient(low = "white", high = "orange", labels=percent_format(accuracy = 1)) +
+  labs(fill= "", title = "Odsetek hospitalizowanych, wśród aktywnych przypadków SARS-CoV-2 ",
+       #subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
+       caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
+  geom_label(data=b, aes(x=long, y=lat), label=paste0(round(b$proc.hosp*100,1), "%"), size=4) +
+  theme_bw()+
+  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
+        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5), plot.background = element_rect(colour = "grey", size = 0.5), 
+        plot.caption = element_text(size = 8))
+dev.off()
+
+##########################################################################################################
+# szpitale medycy (liczba chorych)
+load(file = "E:/R/COVID-19/Ukraina.dane/obwody.lista.Rda")
+obwody.lista <- obwody %>%
+  # trzeba poprawic współrzędne Kijowa, bo nie widać go na mapie
+  select(1:4,6,7)
+obwody.lista[13,1] <- 50.777435
+obwody.lista[13,2] <- 30.167475
+rm(obwody)
+
+szpitale.medycy <- szpitale2 %>%
+  mutate(izolacja= if_else(edrpou_hosp=="Самоізоляція", paste("izolacja"), paste("szpital")))%>%
+  mutate(medycy= if_else(is_medical_worker=="Так", paste("tak"), paste("nie")))%>%
+  group_by(zvit_date, registration_area, izolacja, medycy)%>%
+  summarise_if(is.numeric, funs(sum))%>%
+  rename(id=2)%>%
+  left_join(obwody.lista, by="id")%>%
+  mutate(lat = as.numeric(lat), long = as.numeric(long))%>%
+  mutate(data=ymd(zvit_date))
+
+a<- szpitale.medycy%>%
+  group_by(Obwód,Kod, medycy, long,lat)%>%
+  summarise_if(is.numeric, funs(sum))
+
+ggplot(a)+
+  geom_bar(aes(x=Obwód, y=new_confirm, fill=medycy), stat = "identity", position = position_dodge())+
+  labs(x="", y="", fill="")+
+  #scale_fill_manual(values = c("infekcyjne"="orange", "covid"="red"), labels = c("pacjenci \nz Covid", "łóżka\ninfekcyjne"))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90))
+
+ggplot(a)+
+  geom_bar(aes(x=Obwód, y=new_death, fill=medycy), stat = "identity", position = position_dodge())+
+  labs(x="", y="", fill="")+
+  #scale_fill_manual(values = c("infekcyjne"="orange", "covid"="red"), labels = c("pacjenci \nz Covid", "łóżka\ninfekcyjne"))+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90))
+
+a <- filter(a, medycy=="tak")
+
+ggplot() + 
+  geom_map(data=a, aes(map_id=Kod, fill=new_confirm), map=shp1f) + 
+  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.5) + 
+  coord_map(projection = "mercator") + 
+  scale_fill_gradient(low = "white", high = "orange") +
+  labs(fill= "", title = "Odsetek przypadków SARS-CoV-2 wśród pracowników medycznych",
+       #subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
+       caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
+  geom_label(data=a, aes(x=long, y=lat), label=a$new_confirm, size=3) +
+  theme_bw()+
+  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
+        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5), plot.background = element_rect(colour = "grey", size = 0.5), 
+        plot.caption = element_text(size = 8))

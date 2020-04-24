@@ -1,0 +1,376 @@
+---
+title: "Epidemia SARS-CoV-2 na Białorusi i wybranych państwach europejskich"
+author: 
+date: 
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+```{r include=FALSE, message=FALSE}
+library(maptools)
+library(rgeos)
+library(rgdal)
+library(ggplot2)
+library(gridExtra)
+library(reshape2)
+library(ggthemes)
+library(scales)
+library(tidyr)
+library(dplyr)
+library(ggrepel)
+library(lubridate)
+```
+
+
+```{r include=FALSE, message= FALSE}
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggspatial)
+```
+
+
+```{r}
+
+wybrane <- c("Poland", "Ukraine", "Slovakia", "Hungary", "Moldova", "Romania", "Belarus", "Russia")
+ISO <- c("POL", "UKR", "SVK", "BLR", "HUN", "RUS", "MDA", "ROU")
+sasiedzi <- ne_countries(scale = "medium", returnclass = "sf", continent = "Europe", country = wybrane) %>%
+  rename(ISO3 = 10)
+```
+
+```{r}
+load(file = "E:/R/COVID-19/covid2.Rda")
+
+hopkins <- covid %>%
+  filter(ISO3 %in% ISO)
+
+load(file = "E:/R/COVID-19/covid.ECDC.Rda")
+ECDC <- covid.ECDC %>%
+  filter(ISO3 %in% ISO)%>%
+  filter(data==max(data)) %>%
+  ungroup()%>%
+  select(4,5)
+#ludnć UA ze spisu Dubileta
+ECDC[8,2] <- 37289000
+```
+
+Uwaga ogólna - prawie wszystkie wykresy są sprofilowane pod Białoruś. Biorąc pod uwagę, że epidemia na Białorusi zaczęła się kilka tygodni później niż w Europie Zachodniej, na osi x nie jest podana data, a jakaś wspólny czynnik (np. ilość dni od przekroczenia 1000 zarażonych itp.). Ponadto oś x zazwyczaj kończy się na momencie, w którym obecnie jest Białoruś, gdyż inaczej wykresy byłyby nieczytelne. 
+
+***
+Porównując Białoruś do państw regionu, liczba zarażonych rośnie bardzo szybko. Jedynie w Rosji przyrost jest większy, ale RF ma kilkanaście razy więcej mieszkańców.
+
+
+```{r}
+sasiedzi.1000 <- hopkins %>%
+  filter(liczba.zachorowan>1000)
+
+sasiedzi.1000 <- sasiedzi.1000 %>%
+  group_by(Państwo)%>%
+  mutate(id=row_number()-1) %>%
+  filter(id<sum(sasiedzi.1000$Państwo=="Białoruś"))%>%
+  ungroup()%>%
+  select(5,6,10, 17)%>%
+  filter(Państwo!="Słowacja"&Państwo!="Węgry")
+by.max <- filter(sasiedzi.1000, Państwo=="Białoruś")
+```
+
+
+```{r fig.width=7, fig.height=7}
+kolory <- c("Polska"="red", "Ukraina"="mediumblue", "Mołdawia"= "gold", "Rosja"="springgreen4", "Węgry"="darkorchid3", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="chocolate3")
+#png("sąsiedzi.png", units="in", width=9, height=5, res=600)
+ggplot(data=sasiedzi.1000, aes(x=id, y=liczba.zachorowan, fill=Państwo))+
+  geom_bar(stat="identity")+
+  facet_wrap(~Państwo, ncol=3) +
+  scale_color_manual(values = kolory, aesthetics = "fill")+
+  coord_cartesian(ylim=c(1000,max(sasiedzi.1000$liczba.zachorowan)))+
+  geom_hline(yintercept = max(by.max$liczba.zachorowan), linetype="dashed", color="chocolate3")+
+  #scale_x_continuous(breaks=seq(0, max(b$id), by = 1))+
+  labs(x="liczba dni od przekroczenia 1000 przypadków SARS-CoV-2", y="liczba zarażeń",
+       title = "Wzrost przypadków na Białorusi w porównaniu do państw regionu",
+       #subtitle = paste( "stan na", format(as.Date(max(test3$data)), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+#dev.off()
+```
+
+***
+
+```{r}
+# wykres wzrostu zachorowań w przeliczeniu na 100 tys. mieszkańców.
+d <- hopkins %>%
+  left_join(ECDC, by="ISO3")%>%
+  mutate(zach.100 = liczba.zachorowan*100000/population)%>%
+  mutate(zach.100 = round(zach.100, 1))%>%
+  filter(zach.100>1)%>%
+  group_by(Państwo)%>%
+  mutate(id=row_number())
+e <- filter(d, Państwo=="Białoruś", id==max(id))
+f <- d %>%
+  #to jest do wymiany, jeśli tempo na Białorusi spadnie
+  filter(Państwo=="Białoruś")%>%
+  filter(id==max(id))
+  
+```
+
+
+Jeśli wziąć pod uwagę przyrost zakażeń na 100 tys. mieszkańców, to widać wyraźnie, jak Białoruś odstaje od pozostałych państw regionu. 
+
+
+```{r}
+kolory <- c("Polska"="red", "Ukraina"="blue", "Mołdawia"= "gold", "Rosja"="green4", "Węgry"="magenta", "Rumunia"="darkgrey", "Słowacja"="brown", "Białoruś"="orange")
+
+ggplot(d, aes(x=id, y=zach.100, color=Państwo))+
+  geom_path(size=1.5, alpha=0.8) +
+  scale_color_manual(values = kolory, aesthetics = "color")+
+  coord_cartesian(xlim=c(0,e$id), ylim=c(0,f$zach.100))+
+  labs(x="liczba dni od przekroczenia 1 zakażenia na 100 tys. mieszkańców", 
+       y="liczba zakażonych na 100 tys. mieszkańców",
+       color="",
+       title = "Wzrost zakażeń na Białorusi w porównaniu do państw regionu",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(legend.position = c(0.1,0.6), plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+```
+
+
+***
+
+
+```{r include=F}
+
+kraje <- c("Białoruś", "Niemcy", "Włochy", "Hiszpania", "Wielka Brytania", "Holandia", "Polska", "Belgia", "Szwecja", "Szwajcaria", "Francja")
+```
+
+
+```{r}
+UE2 <- covid %>%
+  filter(liczba.zachorowan>1000)%>%
+  filter(Państwo %in% kraje)%>%
+  # to jest jeszcze do weryfikacji, czy nie będzie generować błędów
+  separate(indeks, into= c("a", "b", "c"), sep = "_")%>%
+  filter(a=="")%>%
+  select(-c(1:3))
+
+```
+
+```{r}
+UE2 <- UE2 %>%
+  group_by(Państwo)%>%
+  mutate(id=row_number()-1) %>%
+  filter(id<sum(UE2$Państwo=="Białoruś"))%>%
+  ungroup()%>%
+  filter(id==max(id))
+
+```
+
+Jeśli jednak porównać Białoruś do państw europejskich, to okazuje się, że sytuacja wcale nie jest dramatyczna. Państwa o porównywalnej wielkości, jak Belgia, Szwajcaria czy Holandia miały na tym etapie znacznie większy poziom zakażeń niż jest obserwowany w tym momencie (stan na wczoraj) na Białorusi. 
+
+
+```{r fig.width=7, fig.height=5}
+
+ggplot(data=UE2,aes(x=Państwo, y=liczba.zachorowan))+
+  geom_point(color="blue")+
+  geom_label_repel(aes(label=Państwo), hjust=-0.1)+
+  labs(x="", y="liczba potwierdzonych przypadków",
+       fill="",
+       title = paste("Liczba zarażonych SARS-CoV-2 po", max(UE2$id), "dniach od przekroczenia \npoziomu 1000 potwierdzonych przypadków"),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(legend.position = "none", axis.text.x = element_blank(), axis.ticks.x = element_blank(), plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+```
+
+```{r}
+# wykres wzrostu zachorowań w przeliczeniu na 100 tys. mieszkańców.
+kraje <- c("Białoruś", "Niemcy", "Włochy", "Hiszpania", "Wielka Brytania", "Holandia", "Polska", "Belgia", "Szwecja", "Szwajcaria", "Francja", "Rosja")
+
+load(file = "E:/R/COVID-19/covid.ECDC.Rda")
+ECDC <- covid.ECDC %>%
+  filter(Państwo %in% kraje)%>%
+  filter(data==max(data)) %>%
+  ungroup()%>%
+  select(4,5)
+
+d <- covid %>%
+  filter(Państwo %in% kraje)%>%
+  left_join(ECDC, by="ISO3")%>%
+  mutate(zach.100 = liczba.zachorowan*100000/population)%>%
+  mutate(zach.100 = round(zach.100, 1))%>%
+  filter(zach.100>10)%>%
+  group_by(Państwo)%>%
+  mutate(id=row_number())
+
+e <- filter(d, Państwo=="Białoruś", id==max(id))
+f <- d %>%
+  #to jest do wymiany, jeśli tempo na Białorusi spadnie
+  filter(Państwo=="Białoruś")%>%
+  filter(id==max(id))
+
+```
+
+```{r}
+  
+limit.osi <- d %>%
+  filter(id==e$id)%>%
+  ungroup()%>%
+  filter(zach.100==max(zach.100))
+```
+
+```{r}
+linia <- d %>%
+  ungroup()%>%
+  filter(Państwo=="Białoruś")%>%
+  filter(zach.100==max(zach.100))
+```
+
+Jeśli porównać przyrost zakażeń na 100 tyś. mieszkańców, to okazuje się, że Białoruś jest europejskim "średniakiem". 
+
+
+```{r}
+ggplot(d, aes(x=id, y=zach.100, color=Państwo))+
+  geom_path(size=1.5, alpha=0.8) +
+  #scale_color_manual(values = kolory, aesthetics = "color")+
+  coord_cartesian(xlim=c(0,e$id), ylim=c(0,limit.osi$zach.100))+
+  labs(x="liczba dni od przekroczenia 1 zakażenia na 100 tys. mieszkańców", 
+       y="liczba zakażonych na 100 tys. mieszkańców",
+       color="",
+       title = "Wzrost zakażeń na Białorusi w porównaniu do wybranych państw",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+```
+
+
+Dla większej czytelności, powyższy wykres rozbity na panele z poszczególnymi państwami. Przerywana linia pokazuje poziom zakażeń na Białorusi. Wzrost był niższy tylko w Polsce (lockdown na bardzo wczesnym etapie) oraz Szwecji (fenomen na oddzielną dyskusję). 
+
+
+```{r}
+ggplot(d, aes(x=id, y=zach.100, color=Państwo))+
+  geom_path(size=1.5, alpha=0.8) +
+  #scale_color_manual(values = kolory, aesthetics = "color")+
+  coord_cartesian(xlim=c(0,e$id), ylim=c(0,limit.osi$zach.100))+
+  geom_hline(yintercept = linia$zach.100, linetype="dashed", color="chocolate3")+
+  facet_wrap(~Państwo, ncol=4)+
+  labs(x="liczba dni od przekroczenia 1 zakażenia na 100 tys. mieszkańców", 
+       y="liczba zakażonych na 100 tys. mieszkańców",
+       color="",
+       title = "Wzrost zakażeń na Białorusi w porównaniu do wybranych państw",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+```
+
+```{r warning=F}
+kraje <- c("Białoruś", "Niemcy", "Włochy", "Hiszpania",  "Polska", "Belgia", "Szwecja", "Szwajcaria",  "Rosja")
+
+a <- covid %>%
+  filter(Państwo %in% kraje)%>%
+  left_join(ECDC, by="ISO3")%>%
+  mutate(zach.100 = nowe.zachorowania*100000/population)%>%
+  group_by(Państwo)%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA))%>%
+  filter(srednia>0.1)%>%
+  mutate(id=row_number())%>%
+  mutate(obostrzenia=if_else(Państwo=="Włochy", paste("2020-03-09"),
+                             if_else(Państwo=="Hiszpania", paste("2020-03-14"),
+                                     if_else(Państwo=="Belgia", paste("2020-03-18"),
+                                             if_else(Państwo=="Niemcy", paste("2020-03-22"),
+                                                     if_else(Państwo=="Szwajcaria", paste("2020-03-23"),
+                                                             if_else(Państwo=="Polska", paste("2020-03-24"),"NA")))))))%>%
+  mutate(obostrzenia= ymd(obostrzenia))
+by.max <-filter(a, Państwo=="Białoruś")
+
+```
+
+
+Jeśli porównać dzienną ilość nowych przypadków zakażeń na 100 tys. mieszkańców, to Białoruś pod tym względem również wypada lepiej niż większość państw zachodnich. Czerwona linia, to data wprowadzenia lockdownu w danym państwie. Rzuca się w oczy fakt, że państwa Europy Zachodniej po wprowadzeniu lockdownu miały większy przyrost zakażeń niż Białoruś. 
+
+```{r}
+wlochy <- filter(a, data==obostrzenia)
+```
+
+
+```{r}
+ggplot(filter(a), aes(x=id, y=srednia))+
+  geom_path(aes(color=Państwo),size=1.5, alpha=0.8) +
+  facet_wrap(~Państwo, ncol=3)+
+  coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1))+
+  geom_hline(yintercept = max(by.max$srednia), linetype="dashed", color="chocolate3")+
+    geom_vline(data=wlochy, aes(xintercept = id), color="red2")+
+  labs(x="liczba dni od przekroczenia 0,1 zakażenia na 100 tys. mieszkańców", 
+       y="dzienny przyrost",
+       color="",
+       title = "Liczba dziennych zakażeń na 100 tys. mieszkańców",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+```
+
+
+```{r warning=F}
+kraje <- c("Białoruś", "Niemcy", "Włochy", "Hiszpania",  "Polska", "Belgia", "Szwecja", "Szwajcaria",  "Rosja")
+
+a <- covid %>%
+  filter(Państwo %in% kraje)%>%
+  left_join(ECDC, by="ISO3")%>%
+  mutate(zach.100 = nowe.zachorowania*100000/population)%>%
+  group_by(Państwo)%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA))%>%
+  mutate(id=row_number())%>%
+  mutate(obostrzenia=if_else(Państwo=="Włochy", paste("2020-03-09"),
+                             if_else(Państwo=="Hiszpania", paste("2020-03-14"),
+                                     if_else(Państwo=="Belgia", paste("2020-03-18"),
+                                             if_else(Państwo=="Niemcy", paste("2020-03-22"),
+                                                     if_else(Państwo=="Szwajcaria", paste("2020-03-23"),
+                                                             if_else(Państwo=="Polska", paste("2020-03-24"),"NA")))))))%>%
+  mutate(obostrzenia= ymd(obostrzenia))
+by.max <- a %>%
+  filter(Państwo=="Białoruś")%>%
+  filter(srednia!=is.na(srednia))%>%
+  filter( data==max(data))
+ 
+
+```
+
+
+Ten sam wykres, z datą na osi x. Można porówać, jak rozwija się sytuacja w poszczególnych państwach. 
+
+
+```{r warning=F}
+ggplot(filter(a), aes(x=data, y=srednia))+
+  geom_path(aes(color=Państwo),size=1.5, alpha=0.8) +
+  facet_wrap(~Państwo, ncol=3)+
+  #coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1))+
+  geom_hline(yintercept = max(by.max$srednia), linetype="dashed", color="chocolate3")+
+  geom_vline(aes(xintercept = obostrzenia), color="red2")+
+  labs(x="", 
+       y="dzienny przyrost",
+       color="",
+       title = "Liczba dziennych zakażeń na 100 tys. mieszkańców",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Center for Systems Science and Engineering at Johns Hopkins University")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+```
+
+
+Wnioski/pytania:  
+
+
+* Białoruś fałszuje ilość zarażeń? Testów robi stosunkowo dużo. 
+* Tryb życia statystycznego Białorusina różni się na tyle mocno od europejskiego, że poziom zakażeń jest dużo niższy? 
+* Białorusini wbrew władzom "samoizolują" się na tyle, że ogranicza to rozprzestrzeanie się wirusa?
+* inne wyjaśnienia?

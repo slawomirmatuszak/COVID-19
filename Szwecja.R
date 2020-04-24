@@ -43,7 +43,7 @@ kolory <- c("Polska"="red4", "Szwecja"="blue")
 ggplot(szwecja)+
   geom_path(aes(x=id, y=liczba.zachorowan, color=Państwo), size=2)+
   scale_x_continuous(limits = c(0,maks))+
-  scale_y_continuous(limits = c(1000,12000))+
+  scale_y_continuous(limits = c(1000,18000))+
   scale_color_manual(values = kolory)+
   labs(x="ilość dni od przekroczenia 1000 zarażeń", y="liczba potwierdzonych zarażeń")+
   theme_bw()+

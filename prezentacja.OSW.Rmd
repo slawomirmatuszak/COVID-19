@@ -53,6 +53,9 @@ load(file = "E:/R/COVID-19/szpitale.respiratory.Rda")
 
 load(file = "E:/R/COVID-19/szpitale.obwody.Rda")
 
+load(file = "E:/R/COVID-19/szpitale.medycy.Rda")
+
+
 ```
 
 
@@ -399,6 +402,80 @@ ggplot(a, aes(x=dzien, y=proc.zach, color=Obwód))+
 
 ***
 
+```{r}
+#średnia krocząca dla UA
+a <- obwody %>%
+  ungroup()%>%
+  group_by(data)%>%
+  summarise(
+    nowe.zach=sum(ilosc)
+  )%>%
+  mutate(population=37288600)%>%
+  mutate(zach.100 = nowe.zach*100000/population)%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA))%>%
+  filter(srednia !=is.na(srednia))
+```
+
+```{r dpi=300}
+ggplot(filter(a), aes(x=data, y=srednia))+
+  geom_path(size=1.5, alpha=0.8, color="blue3") +
+  #scale_x_date(date_breaks = "2 weeks", date_labels =  "%b %Y") +
+  #coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1))+
+  labs(x="", 
+       y="dzienny przyrost",
+       color="",
+       title = "Liczba dziennych zakażeń na 100 tys. mieszkańców na Ukrainie",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+```
+
+
+***
+
+
+```{r}
+# średnia krocząca
+a <- obwody %>%
+  group_by(data, Obwód, population)%>%
+  summarise(
+    nowe.zach=sum(ilosc)
+  )%>%
+  mutate(zach.100 = nowe.zach*100000/population)%>%
+  group_by(Obwód)%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA))%>%
+  filter(srednia !=is.na(srednia))
+
+b <- a %>%
+  group_by(Obwód)%>%
+  filter(srednia ==max(srednia))%>%
+  distinct(srednia)%>%
+  arrange(desc(srednia))
+
+a$Obwód <- ordered(a$Obwód, levels = b$Obwód)
+```
+```{r fig.width=10, fig.height=10}
+ggplot(filter(a), aes(x=data, y=srednia))+
+  geom_path(aes(color=Obwód),size=1.5, alpha=0.8) +
+  facet_wrap(~Obwód, ncol=5, scales = "free_y")+
+  scale_x_date(date_breaks = "2 weeks", date_labels =  "%b %Y") +
+  #coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1))+
+  labs(x="", 
+       y="dzienny przyrost",
+       color="",
+       title = "Liczba dziennych zakażeń na 100 tys. mieszkańców w obwodach",
+       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+
+```
+
+
+***
 
 ### Sytuacja w szpitalach
 
@@ -487,32 +564,6 @@ ggplot(c)+
 
 ***
 
-```{r warning=F}
-# szpitale medycy (liczba chorych)
-load(file = "E:/R/COVID-19/Ukraina.dane/obwody.lista.Rda")
-load(file = "E:/R/COVID-19/szpitale.2.github.Rda")
-
-
-obwody.lista <- obwody %>%
-  # trzeba poprawic współrzędne Kijowa, bo nie widać go na mapie
-  select(1:4,6,7)
-obwody.lista[13,1] <- 50.777435
-obwody.lista[13,2] <- 30.167475
-rm(obwody)
-
-szpitale.medycy <- szpitale2 %>%
-  mutate(izolacja= if_else(edrpou_hosp=="Самоізоляція", paste("izolacja"), paste("szpital")))%>%
-  mutate(medycy= if_else(is_medical_worker=="Так", paste("tak"), paste("nie")))%>%
-  group_by(zvit_date, registration_area, izolacja, medycy)%>%
-  summarise_if(is.numeric, funs(sum))%>%
-  rename(id=2)%>%
-  left_join(obwody.lista, by="id")%>%
-  mutate(lat = as.numeric(lat), long = as.numeric(long))%>%
-  mutate(data=ymd(zvit_date))
-
-
-```
-
 
 ```{r fig.width=8, fig.height=5}
 a <- szpitale.medycy %>%
@@ -543,28 +594,30 @@ b <- szpitale.medycy%>%
   filter(medycy=="tak")%>%
   group_by(Obwód,Kod, medycy, long,lat)%>%
   summarise(
-    liczba = sum(new_confirm)-sum(new_recover)-sum(new_death)
+    aktywni = sum(new_confirm)-sum(new_recover)-sum(new_death),
+    zgony = sum(new_death),
+    wyleczeni = sum(new_recover)
   )%>%
-  arrange(desc(liczba))
-```
+  arrange(desc(aktywni))
 
-
-```{r}
 a<- szpitale.medycy%>%
   group_by(Obwód,Kod, medycy, long,lat)%>%
   summarise(
-    liczba = sum(new_confirm)-sum(new_recover)-sum(new_death)
-  )%>%
-  ungroup()%>%
-  mutate(Obwód=as.factor(Obwód))
+    aktywni = sum(new_confirm)-sum(new_recover)-sum(new_death),
+    zgony = sum(new_death),
+    wyleczeni = sum(new_recover)
+  ) %>%
+  ungroup()
 
 a$Obwód <- ordered(a$Obwód, levels = b$Obwód)
 ```
 
 
+
+
 ```{r fig.width=9, fig.height=6, warning=F}
 ggplot(a)+
-  geom_bar(aes(x=Obwód, y=liczba, fill=medycy), stat = "identity", position = position_dodge())+
+  geom_bar(aes(x=Obwód, y=aktywni, fill=medycy), stat = "identity", position = position_dodge())+
   labs(x="", y="", fill="", 
        title = "Ilość przypadków SARS-CoV-2 wśród pracowników medycznych w obwodach",
        caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
@@ -579,25 +632,68 @@ ggplot(a)+
 a <- filter(a, medycy=="tak")
 
 ggplot() + 
-  geom_map(data=a, aes(map_id=Kod, fill=liczba), map=shp1f) + 
+  geom_map(data=a, aes(map_id=Kod, fill=aktywni), map=shp1f) + 
   geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.5) + 
   coord_map(projection = "mercator") + 
-  scale_fill_gradient(low = "white", high = "orange") +
-  labs(fill= "", title = "ilość przypadków SARS-CoV-2 wśród pracowników medycznych",
+  scale_fill_gradient(low = "white", high = "red4") +
+  labs(fill= "", title = "Liczba przypadków SARS-CoV-2 wśród pracowników medycznych",
        #subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
        caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
-  geom_label(data=a, aes(x=long, y=lat), label=a$liczba, size=3) +
+  geom_label(data=a, aes(x=long, y=lat), label=a$aktywni, size=3) +
   theme_bw()+
   theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
         axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
         panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
         plot.subtitle = element_text(hjust = 0.5), plot.background = element_rect(colour = "grey", size = 0.5), 
         plot.caption = element_text(size = 8))
-
 ```
 
 
 ***
+
+```{r}
+# wykres udziału personelu medycznego w stosunku do zarażonych
+
+
+a<- szpitale.medycy%>%
+  group_by(Obwód,Kod, medycy, long,lat)%>%
+  summarise(
+    liczba = sum(new_confirm)-sum(new_recover)-sum(new_death)
+  )%>%
+  ungroup()
+
+a1 <- a %>%
+  filter(medycy=="tak")
+a2 <- a %>%
+  filter(medycy=="nie")%>%
+  select(liczba)%>%
+  rename(pacjenci=liczba)
+
+a3 <- cbind(a1, a2)
+
+b <- a3 %>%
+  mutate(suma=pacjenci+liczba)%>%
+  mutate(odsetek = liczba/suma)%>%
+  mutate(odsetek = round(odsetek,3))
+```
+
+```{r dpi=300}
+ggplot() + 
+  geom_map(data=b, aes(map_id=Kod, fill=odsetek), map=shp1f) + 
+  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.5) + 
+  coord_map(projection = "mercator") + 
+  scale_fill_gradient(low = "white", high = "red4", labels = percent_format(accuracy = 1)) +
+  labs(fill= "", title = "Odsetek pracowników medycznych wśród przypadków SARS-CoV-2",
+       #subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
+       caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
+  geom_label(data=b, aes(x=long, y=lat), label=paste0(b$odsetek*100,"%"), size=3) +
+  theme_bw()+
+  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
+        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5), plot.background = element_rect(colour = "grey", size = 0.5), 
+        plot.caption = element_text(size = 8))
+```
 
 
 

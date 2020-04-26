@@ -278,7 +278,7 @@ a <- covid %>%
   left_join(ECDC, by="ISO3")%>%
   mutate(zach.100 = nowe.zachorowania*100000/population)%>%
   group_by(Państwo)%>%
-  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA))%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA, align="right"))%>%
   filter(srednia>0.1)%>%
   mutate(id=row_number())%>%
   mutate(obostrzenia=if_else(Państwo=="Włochy", paste("2020-03-09"),
@@ -327,7 +327,7 @@ a <- covid %>%
   left_join(ECDC, by="ISO3")%>%
   mutate(zach.100 = nowe.zachorowania*100000/population)%>%
   group_by(Państwo)%>%
-  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA))%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA, align="right"))%>%
   mutate(id=row_number())%>%
   mutate(obostrzenia=if_else(Państwo=="Włochy", paste("2020-03-09"),
                              if_else(Państwo=="Hiszpania", paste("2020-03-14"),

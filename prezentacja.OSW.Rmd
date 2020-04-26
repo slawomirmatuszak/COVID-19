@@ -412,7 +412,7 @@ a <- obwody %>%
   )%>%
   mutate(population=37288600)%>%
   mutate(zach.100 = nowe.zach*100000/population)%>%
-  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA))%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA, align="right"))%>%
   filter(srednia !=is.na(srednia))
 ```
 
@@ -425,7 +425,7 @@ ggplot(filter(a), aes(x=data, y=srednia))+
        y="dzienny przyrost",
        color="",
        title = "Liczba dziennych zakażeń na 100 tys. mieszkańców na Ukrainie",
-       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       subtitle = "średnia krocząca z poprzednich 7 dni",
        caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
@@ -445,7 +445,7 @@ a <- obwody %>%
   )%>%
   mutate(zach.100 = nowe.zach*100000/population)%>%
   group_by(Obwód)%>%
-  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA))%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA, align="right"))%>%
   filter(srednia !=is.na(srednia))
 
 b <- a %>%
@@ -466,7 +466,7 @@ ggplot(filter(a), aes(x=data, y=srednia))+
        y="dzienny przyrost",
        color="",
        title = "Liczba dziennych zakażeń na 100 tys. mieszkańców w obwodach",
-       #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),
+       subtitle = "średnia krocząca z poprzednich 7 dni (oś y indywidualna dla każdego obwodu)",
        caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
@@ -476,6 +476,27 @@ ggplot(filter(a), aes(x=data, y=srednia))+
 
 
 ***
+
+```{r fig.width=10, fig.height=10}
+ggplot(filter(a), aes(x=data, y=srednia))+
+  geom_path(aes(color=Obwód),size=1.5, alpha=0.8) +
+  facet_wrap(~Obwód, ncol=5)+
+  scale_x_date(date_breaks = "2 weeks", date_labels =  "%b %Y") +
+  #coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1))+
+  labs(x="", 
+       y="dzienny przyrost",
+       color="",
+       title = "Liczba dziennych zakażeń na 100 tys. mieszkańców w obwodach",
+       subtitle = "średnia krocząca z poprzednich 7 dni (oś y wspólna dla wszystkich obwodów)",
+       caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+
+```
+
+***
+
 
 ### Sytuacja w szpitalach
 

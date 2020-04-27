@@ -128,7 +128,7 @@ ggplot(d, aes(x=id, y=zach.100, color=Państwo))+
   scale_color_manual(values = kolory, aesthetics = "color")+
   coord_cartesian(xlim=c(0,e$id), ylim=c(0,f$zach.100))+
   labs(x="liczba dni od przekroczenia 1 zakażenia na 100 tys. mieszkańców", 
-       y="liczba zakażonych na 100 tys. mieszkańców",
+       y="liczba zakażonych na 100 tys. mieszkańców", 
        color="",
        title = "Wzrost zakażeń na Białorusi w porównaniu do państw regionu",
        #subtitle = paste( "stan na", format(as.Date(UA1$data), "%d/%m/%Y")),

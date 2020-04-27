@@ -122,11 +122,11 @@ a <- szpitale.suma%>%
     zarazeni=sum(new_confirm)
   )%>%
   filter(person_age_group!="b.d.")%>%
-  filter(zgony>0)
+  mutate(zgony.proc=round(zgony/sum(zgony)*100,1))
 
 p2 <- ggplot(a, aes(x="", y=zgony, fill=person_age_group)) +
   geom_col() +
-  geom_label_repel(aes(label = paste0(round(zgony/sum(zgony)*100), "%")), 
+  geom_label_repel(aes(label = paste0(round(zgony.proc,2), "%")), 
                    position = position_stack(vjust = 0.5), show.legend = FALSE, color="white", fontface='bold')+
   coord_polar(theta = "y") + 
   labs(fill="", y="",x="", title = "Zgony z powodu Covid-19",
@@ -177,7 +177,7 @@ ggplot(b, aes(x="", y=zgony, fill=add_conditions)) +
 ***
 
 
-```{r dpi=300}
+```{r fig.width=7, fig.height=7}
 a <- szpitale.suma %>%
   filter(new_death>0)
 
@@ -185,9 +185,9 @@ ggplot(a)+
   geom_bar(aes(x=person_age_group, y=smiertelnosc, fill=person_gender), 
            stat="identity", position = position_dodge(preserve = 'single'))+
   facet_wrap(~add_conditions, ncol = 1)+
-  scale_y_continuous(labels = percent_format(accuracy = 1))+
+  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,0.24))+
   geom_label(data=a, aes(x=person_age_group, y=smiertelnosc, label=paste0(round(smiertelnosc*100,1), "%"), 
-                         fill=person_gender), position = position_dodge(width = 0.8), show.legend = FALSE)+
+                         fill=person_gender), position = position_dodge(width = 0.8), show.legend = FALSE, hjust = -0.5)+
   coord_flip()+
   labs(fill="", y="śmiertelność", x="", 
        title = "Porównanie śmiertelności w zależności od grupy wiekowej",
@@ -456,6 +456,28 @@ b <- a %>%
 
 a$Obwód <- ordered(a$Obwód, levels = b$Obwód)
 ```
+
+
+```{r fig.width=10, fig.height=10}
+ggplot(filter(a), aes(x=data, y=srednia))+
+  geom_path(aes(color=Obwód),size=1.5, alpha=0.8) +
+  facet_wrap(~Obwód, ncol=5)+
+  scale_x_date(date_breaks = "2 weeks", date_labels =  "%b %Y") +
+  #coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1))+
+  labs(x="", 
+       y="dzienny przyrost",
+       color="",
+       title = "Liczba dziennych zakażeń na 100 tys. mieszkańców w obwodach",
+       subtitle = "średnia krocząca z poprzednich 7 dni (oś y wspólna dla wszystkich obwodów)",
+       caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))
+
+```
+
+***
+
 ```{r fig.width=10, fig.height=10}
 ggplot(filter(a), aes(x=data, y=srednia))+
   geom_path(aes(color=Obwód),size=1.5, alpha=0.8) +
@@ -477,25 +499,7 @@ ggplot(filter(a), aes(x=data, y=srednia))+
 
 ***
 
-```{r fig.width=10, fig.height=10}
-ggplot(filter(a), aes(x=data, y=srednia))+
-  geom_path(aes(color=Obwód),size=1.5, alpha=0.8) +
-  facet_wrap(~Obwód, ncol=5)+
-  scale_x_date(date_breaks = "2 weeks", date_labels =  "%b %Y") +
-  #coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1))+
-  labs(x="", 
-       y="dzienny przyrost",
-       color="",
-       title = "Liczba dziennych zakażeń na 100 tys. mieszkańców w obwodach",
-       subtitle = "średnia krocząca z poprzednich 7 dni (oś y wspólna dla wszystkich obwodów)",
-       caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
-  theme_bw()+
-  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
-        plot.background = element_rect(colour = "grey", size = 0.5))
 
-```
-
-***
 
 
 ### Sytuacja w szpitalach

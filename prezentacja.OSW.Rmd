@@ -185,7 +185,7 @@ ggplot(a)+
   geom_bar(aes(x=person_age_group, y=smiertelnosc, fill=person_gender), 
            stat="identity", position = position_dodge(preserve = 'single'))+
   facet_wrap(~add_conditions, ncol = 1)+
-  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,0.24))+
+  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,0.27))+
   geom_label(data=a, aes(x=person_age_group, y=smiertelnosc, label=paste0(round(smiertelnosc*100,1), "%"), 
                          fill=person_gender), position = position_dodge(width = 0.8), show.legend = FALSE, hjust = -0.5)+
   coord_flip()+

@@ -85,7 +85,7 @@ c <- obwody %>%
 
 ### Ogólna sytuacja na Ukrainie
 
-Wedug danych Ministerstwa Zdrowia  z `r unique(format(a$data2, "%d"))` `r if_else(unique(format(a$data2, "%B"))=="marzec", paste("marca"), paste("kwietnia"))` `r unique(format(a$data2, "%Y"))` z godziny 9.00 od początku epidemii na Ukrainie zanotowano w sumie **`r sum(a$liczba)`** przypadków zarażenia wirusem SARS-CoV-2 , z czego **`r sum(b$liczba)`** osób zmarło i **`r sum(c$liczba)`** się wyleczyło.  
+Wedug danych Ministerstwa Zdrowia  z `r unique(format(a$data2, "%d"))` `r if_else(unique(format(a$data2, "%B"))=="marzec", paste("marca"),if_else(unique(format(a$data2, "%B"))=="maj", paste("maja"), paste("kwietnia"))) ` `r unique(format(a$data2, "%Y"))` z godziny 9.00 od początku epidemii na Ukrainie zanotowano w sumie **`r as.integer(sum(a$liczba))`** przypadków zarażenia wirusem SARS-CoV-2 , z czego **`r sum(b$liczba)`** osób zmarło i **`r sum(c$liczba)`** się wyleczyło.  
 
 
 ```{r message=FALSE, include=FALSE}
@@ -425,7 +425,7 @@ ggplot(filter(a), aes(x=data, y=srednia))+
        y="dzienny przyrost",
        color="",
        title = "Liczba dziennych zakażeń na 100 tys. mieszkańców na Ukrainie",
-       subtitle = "średnia krocząca z poprzednich 7 dni",
+       subtitle = "średnia krocząca z 7 dni",
        caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
@@ -468,7 +468,7 @@ ggplot(filter(a), aes(x=data, y=srednia))+
        y="dzienny przyrost",
        color="",
        title = "Liczba dziennych zakażeń na 100 tys. mieszkańców w obwodach",
-       subtitle = "średnia krocząca z poprzednich 7 dni (oś y wspólna dla wszystkich obwodów)",
+       subtitle = "średnia krocząca z 7 dni (oś y wspólna dla wszystkich obwodów)",
        caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
@@ -488,7 +488,7 @@ ggplot(filter(a), aes(x=data, y=srednia))+
        y="dzienny przyrost",
        color="",
        title = "Liczba dziennych zakażeń na 100 tys. mieszkańców w obwodach",
-       subtitle = "średnia krocząca z poprzednich 7 dni (oś y indywidualna dla każdego obwodu)",
+       subtitle = "średnia krocząca z 7 dni (oś y indywidualna dla każdego obwodu)",
        caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
   theme_bw()+
   theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
@@ -527,6 +527,40 @@ ggplot(a, aes(x="", y=liczba, fill=izolacja)) +
         plot.title = element_text(hjust = 0.5),
         legend.position = "right")
 ```
+
+***
+
+```{r}
+a <- szpitale.obwody %>%
+  group_by(Kod, long, lat, Obwód, izolacja)%>%
+  summarise(
+    liczba = sum(new_confirm)-sum(new_recover)-sum(new_death)
+  )%>%
+  pivot_wider(names_from = izolacja, values_from = liczba)%>%
+  mutate(odsetek=szpital/sum(izolacja, szpital))%>%
+  mutate(odsetek = if_else(odsetek>0, odsetek, 0))
+```
+
+```{r dpi=300}
+# odsetek hospitalizowanych osób
+ggplot() + 
+  geom_map(data=a, aes(map_id=Kod, fill=odsetek), map=shp1f) + 
+  geom_path(data = shp1f, aes(x=long, y=lat, group=group), colour="grey", size=0.5) + 
+  coord_map(projection = "mercator") + 
+  scale_fill_gradient(low = "white", high = "orange", labels = percent) +
+  labs(fill= "", title = "Odsetek hospitalizowanych przypadków SARS-CoV-2",
+       #subtitle =  paste0( "stan na ", format(as.Date(a$data2), "%d/%m/%Y"), ", godz. 9.00"),
+       caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
+  geom_label(data=a, aes(x=long, y=lat), label=paste0(round(a$odsetek*100, 1), "%"), size=3) +
+  theme_bw()+
+  theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = c(0.1, 0.2),
+        panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5), plot.background = element_rect(colour = "grey", size = 0.5), 
+        plot.caption = element_text(size = 8))
+```
+
+
 
 ***
 
@@ -925,6 +959,7 @@ ggplot(data=test3,aes(x=Państwo, y=liczba.zachorowan, fill=UA, group=UA))+
   geom_point(data=test3[11,], color="orange", size=3)+
   geom_label_repel(aes(fill=UA, label=Państwo), hjust=-0.1)+
   scale_fill_manual(values = kolory2)+
+  scale_y_continuous(labels = scales::comma)+
   labs(x="", y="liczba potwierdzonych przypadków",
        fill="",
        title = paste("Liczba zarażonych Covid-19 po", max(test3$id), "dniach od przekroczenia \npoziomu 1000 potwierdzonych przypadków"),

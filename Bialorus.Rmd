@@ -290,6 +290,12 @@ a <- covid %>%
   mutate(obostrzenia= ymd(obostrzenia))
 by.max <-filter(a, Państwo=="Białoruś")
 
+bialorus <- a %>%
+  filter(Państwo=="Białoruś")%>%
+  ungroup()%>%
+  select(10,19,20, data)%>%
+  rename(obwod.pl=1)
+save(bialorus, file="E:/R/Rosja/bialorus.Rda")
 ```
 
 
@@ -304,7 +310,7 @@ wlochy <- filter(a, data==obostrzenia)
 ggplot(filter(a), aes(x=id, y=srednia))+
   geom_path(aes(color=Państwo),size=1.5, alpha=0.8) +
   facet_wrap(~Państwo, ncol=3)+
-  coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1))+
+  coord_cartesian(xlim=c(0,sum(a$Państwo=="Białoruś")-1), ylim=c(0,18))+
   geom_hline(yintercept = max(by.max$srednia), linetype="dashed", color="chocolate3")+
     geom_vline(data=wlochy, aes(xintercept = id), color="red2")+
   labs(x="liczba dni od przekroczenia 0,1 zakażenia na 100 tys. mieszkańców", 

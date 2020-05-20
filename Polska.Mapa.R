@@ -59,6 +59,7 @@ powiaty <- PL %>%
   left_join(lud.powiat, by="Kod")%>%
   mutate(zakazeni=as.numeric(zakazeni),
          ludnosc=as.numeric(ludnosc))%>%
+  mutate(ludnosc=if_else(Nazwa=="Powiat radomski", 365146, ludnosc))%>%
   mutate(zach.100.cum=zakazeni*1e5/ludnosc)
 
 test <- powiaty %>%
@@ -130,6 +131,7 @@ a <- powiaty %>%
   filter(!is.na(zach.100.cum))%>%
   group_by(Kod)%>%
   filter(data==max(data))
+ 
 
 piotrków <- filter(a, Kod=="1010"&data==max(data))%>%ungroup()%>%select(zach.100.cum)%>%pull()
 skierniewice <- filter(a, Kod=="1015"&data==max(data))%>%ungroup()%>%select(zach.100.cum)%>%pull()
@@ -195,12 +197,32 @@ test <- a %>%
   group_by(wojewodztwo)%>%
   mutate(woj.mediana = median(zach.100.cum))
 
-png("./wykresy/woj.powiaty.png", units="in", width=9, height=5, res=600)
+
+
+etykieta <- test %>%
+  filter(zach.100.cum>200) %>%
+  mutate(Nazwa=gsub("Powiat ","", Nazwa))%>%
+  mutate(Nazwa=gsub("m[.]","", Nazwa))%>%
+  ungroup()%>%
+  mutate(wojewodztwo=as.factor(wojewodztwo))
+
+kolejnosc <- test %>%
+  mutate(Nazwa=gsub("Powiat ","", Nazwa))%>%
+  mutate(Nazwa=gsub("m[.]","", Nazwa))%>%
+  ungroup()%>%
+  filter(Nazwa %in% etykieta$Nazwa)%>%
+  filter(zach.100.cum>200)
+
+etykieta$wojewodztwo <- fct_reorder(etykieta$wojewodztwo, kolejnosc$woj.mediana, .desc = T)
+
+png("./wykresy/woj.powiatyetykieta.png", units="in", width=12, height=8, res=600)
 ggplot(test, aes(x=reorder(wojewodztwo, woj.mediana), y=zach.100.cum))+
   geom_boxplot(color="blue")+
   geom_point(color="blue", alpha=0.2)+
+  ggrepel::geom_label_repel(data=etykieta, aes(fill=wojewodztwo),label=etykieta$Nazwa)+
+  guides(fill = guide_legend(title = "Województwo", override.aes = aes(label = "")))+
   coord_flip()+
-  labs(x="", y="poziom zakażeń w powiatach na 100 tys. mieszkańców")+
+  labs(x="", y="poziom zakażeń na 100 tys. mieszkańców w powiatach")+
   theme_bw()
 dev.off()
 

@@ -1,7 +1,7 @@
-library(tidyr)
-library(dplyr)
+library(tidyverse)
 library(lubridate)
 library(readxl)
+
 
 #######################################################################################################
 # nowy skrypt w związku z tym, że w repo przestali podawać ilość osób, które wyzdrowiały

@@ -233,7 +233,8 @@ Jeśli porównać przyrost zakażeń na 100 tyś. mieszkańców, to okazuje się
 
 
 ```{r}
-ggplot(d, aes(x=id, y=zach.100, color=Państwo))+
+library(forcats)
+ggplot(d, aes(x=id, y=zach.100, color=fct_reorder2(Państwo, id, zach.100)))+
   geom_path(size=1.5, alpha=0.8) +
   #scale_color_manual(values = kolory, aesthetics = "color")+
   coord_cartesian(xlim=c(0,e$id), ylim=c(0,limit.osi$zach.100))+
@@ -253,7 +254,7 @@ Dla większej czytelności, powyższy wykres rozbity na panele z poszczególnymi
 
 
 ```{r}
-ggplot(d, aes(x=id, y=zach.100, color=Państwo))+
+ggplot(d, aes(x=id, y=zach.100, color=fct_reorder2(Państwo, id, zach.100)))+
   geom_path(size=1.5, alpha=0.8) +
   #scale_color_manual(values = kolory, aesthetics = "color")+
   coord_cartesian(xlim=c(0,e$id), ylim=c(0,limit.osi$zach.100))+
@@ -293,7 +294,7 @@ by.max <-filter(a, Państwo=="Białoruś")
 bialorus <- a %>%
   filter(Państwo=="Białoruś")%>%
   ungroup()%>%
-  select(10,19,20, data)%>%
+  select(10,19,20, data, zach.100)%>%
   rename(obwod.pl=1)
 save(bialorus, file="E:/R/Rosja/bialorus.Rda")
 ```

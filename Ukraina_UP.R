@@ -1,6 +1,5 @@
 library(data.table)
-library(tidyr)
-library(dplyr)
+library(tidyverse)
 library(lubridate)
 library(readxl)
 
@@ -196,4 +195,67 @@ a <- obwody %>%
 
 ggplot(a, aes(x=data, y=proc.zach))+
   geom_point()+
-  geom_smooth(method = "lm")
+  geom_smooth()
+
+# porównanie aktywnych do wyleczeonych
+
+aktywni <- obwody%>%
+  filter(data==max(data))%>%
+  filter(skumulowane=="aktywni")%>%
+  select(Obwód, liczba)%>%
+  rename(aktywni=liczba)
+
+wyleczeni <- obwody%>%
+  filter(data==max(data))%>%
+  filter(skumulowane=="wyleczeni")%>%
+  select(Obwód, liczba)%>%
+  rename(wyleczeni=liczba)
+
+zgony <- obwody%>%
+  filter(data==max(data))%>%
+  filter(skumulowane=="zgony")%>%
+  select(Obwód, liczba)%>%
+  rename(zgony=liczba)
+
+porownanie <- left_join(aktywni, wyleczeni, by="Obwód")%>%
+  left_join(zgony, by="Obwód")%>%
+  mutate(porownanie=wyleczeni>aktywni)%>%
+  mutate(porownanie.proc = wyleczeni/aktywni)%>%
+  mutate(zarazeni = aktywni+zgony+wyleczeni)%>%
+  mutate(proc.wylecz = wyleczeni/zarazeni)
+
+# obdowy z geom_point
+a <- obwody %>%
+  group_by(data, Obwód, population)%>%
+  summarise(
+    nowe.zach=sum(ilosc)
+  )%>%
+  mutate(zach.100 = nowe.zach*100000/population)%>%
+  group_by(Obwód)%>%
+  mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA, align="right"))%>%
+  filter(srednia !=is.na(srednia))
+
+b <- a %>%
+  group_by(Obwód)%>%
+  filter(data ==max(data))%>%
+  distinct(srednia)%>%
+  arrange(desc(srednia))
+
+a$Obwód <- ordered(a$Obwód, levels = b$Obwód)
+
+ggplot(a, aes(x=data, y=zach.100))+
+  geom_path(aes(x=data, y=srednia), color="darkgreen", size=1.5, alpha=0.7)+
+  #geom_path(aes(x=data, y=zach.100), color="darkgreen", size=1.5, alpha=0.7)+
+  geom_point(color="blue",size=1.5, alpha=0.3) +
+  facet_wrap(~Obwód, ncol=5, scales = "free_y")+
+  scale_x_date(date_breaks = "2 weeks", date_labels =  "%b %Y") +
+  geom_smooth(color="red", size=1.5, span=0.4, alpha=0.7, se=F)+
+  labs(x="", 
+       y="dzienny przyrost",
+       color="",
+       title = "Liczba dziennych zakażeń na 100 tys. mieszkańców w obwodach",
+       subtitle = "średnia krocząca z 7 dni (oś y wspólna dla wszystkich obwodów)",
+       caption = "Źródło: Ministerstwo Zdrowia Ukrainy")+
+  theme_bw()+
+  theme(legend.position = "none", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
+        plot.background = element_rect(colour = "grey", size = 0.5))

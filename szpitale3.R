@@ -10,7 +10,7 @@ library(gridExtra)
 
 ################################################################################################## 
 ################################################################################################## 
-#skrypt do obróbki danych o szpitalach.
+# skrypt do obróbki danych o szpitalach.
 
 shp1 <- readOGR("E:/R/UA_spis/data/mapa", layer = "obwod_pl")
 #zmieniamy format danych
@@ -35,7 +35,7 @@ szpitale <- szpitale %>%
   mutate(data=dmy(data), id=gsub("м.Київ", "м. Київ", id))%>%
   filter(data!=Sys.Date())%>%
   group_by(id, data)%>%
-  summarise_all(funs(sum))%>%
+  summarise_all(sum, na.rm=T)%>%
   arrange(id, data)%>%
   unite(col = "id2", data, id, sep="_", remove = F)
 
@@ -583,3 +583,191 @@ ggplot() +
         panel.grid.minor = element_blank(),panel.grid.major = element_blank(), plot.title = element_text(hjust = 0.5),
         plot.subtitle = element_text(hjust = 0.5), plot.background = element_rect(colour = "grey", size = 0.5), 
         plot.caption = element_text(size = 8))
+
+#########################################################################################################################
+# porównanie wieku w szpitalach
+izolacja.szpital <- szpitale2 %>%
+  mutate(data=ymd(zvit_date))%>%
+  mutate(izolacja = if_else(edrpou_hosp== "Самоізоляція", paste("samoizolacja"), paste("szpital")))%>%
+  group_by(person_age_group, add_conditions, izolacja)%>%
+  summarise_if(is.numeric, funs(sum))%>%
+  ungroup()%>%
+  mutate(smiertelnosc = new_death/new_confirm)%>%
+  mutate(add_conditions = gsub("Так", "choroby współistniejące", add_conditions))%>%
+  mutate(add_conditions = gsub("Ні", "brak chorób współistniejących", add_conditions))%>%
+  #mutate(person_gender = gsub("Жіноча", "kobiety", person_gender))%>%
+  #mutate(person_gender = gsub("Чоловіча", "mężczyźni", person_gender))%>%
+  #mutate(person_gender = gsub("Уточнюється", "b.d.", person_gender))%>%
+  mutate(person_age_group = gsub("Уточнюється", "b.d.", person_age_group))
+
+odsetek <- izolacja.szpital%>%
+  mutate(odsetek = new_confirm/sum(izolacja.szpital$new_confirm))
+
+# pierwszy wariant, lae mało czytelny
+ggplot(odsetek, aes(x=person_age_group, y=odsetek))+
+  geom_col()+
+  facet_wrap(izolacja~add_conditions)
+
+#Drugi wariant
+
+a <- izolacja.szpital%>%
+  filter(izolacja=="samoizolacja")%>%
+  filter(add_conditions == "brak chorób współistniejących")%>%
+  filter(person_age_group!="b.d.")
+
+b <- izolacja.szpital%>%
+  filter(izolacja=="szpital")%>%
+  filter(add_conditions == "brak chorób współistniejących")%>%
+  filter(person_age_group!="b.d.")
+
+c <- izolacja.szpital%>%
+  filter(izolacja=="samoizolacja")%>%
+  filter(add_conditions == "choroby współistniejące")%>%
+  filter(person_age_group!="b.d.")
+
+d <- izolacja.szpital%>%
+  filter(izolacja=="szpital")%>%
+  filter(add_conditions == "choroby współistniejące")%>%
+  filter(person_age_group!="b.d.")
+
+kolory <- c("0-5"="red4", "06-17"="royalblue4", "18-39"="coral3", "40-64"="goldenrod4", "65+"="yellowgreen")
+
+p1 <- ggplot(a, aes(x="", y=new_confirm, fill=person_age_group)) +
+  geom_col() +
+  #geom_label_repel(aes(label = paste0(round(zarazeni/sum(zarazeni)*100), "%")), 
+                   #position = position_stack(vjust = 0.5), show.legend = FALSE, color="white",fontface='bold')+
+  coord_polar(theta = "y") + 
+  scale_fill_manual(values = kolory)+
+  labs(fill="", y="",x="", title = "samoizolacja, bez chorób", caption = "")+
+  theme_bw()+
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        panel.grid=element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+
+p2 <- ggplot(b, aes(x="", y=new_confirm, fill=person_age_group)) +
+  geom_col() +
+  #geom_label_repel(aes(label = paste0(round(zarazeni/sum(zarazeni)*100), "%")), 
+  #position = position_stack(vjust = 0.5), show.legend = FALSE, color="white",fontface='bold')+
+  coord_polar(theta = "y") + 
+  scale_fill_manual(values = kolory)+
+  labs(fill="", y="",x="", title = "szpital, bez chorób", caption = "")+
+  theme_bw()+
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        panel.grid=element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+
+p3 <- ggplot(c, aes(x="", y=new_confirm, fill=person_age_group)) +
+  geom_col() +
+  #geom_label_repel(aes(label = paste0(round(zarazeni/sum(zarazeni)*100), "%")), 
+  #position = position_stack(vjust = 0.5), show.legend = FALSE, color="white",fontface='bold')+
+  coord_polar(theta = "y") + 
+  scale_fill_manual(values = kolory)+
+  labs(fill="", y="",x="", title = "samozolacja, z chorobami", caption = "")+
+  theme_bw()+
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        panel.grid=element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+
+p4 <- ggplot(d, aes(x="", y=new_confirm, fill=person_age_group)) +
+  geom_col() +
+  #geom_label_repel(aes(label = paste0(round(zarazeni/sum(zarazeni)*100), "%")), 
+  #position = position_stack(vjust = 0.5), show.legend = FALSE, color="white",fontface='bold')+
+  coord_polar(theta = "y") + 
+  scale_fill_manual(values = kolory)+
+  labs(fill="", y="",x="", title = "szpital, z chorobami", caption = "")+
+  theme_bw()+
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        panel.grid=element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+
+grid.arrange(p1,p2,p3,p4, ncol=2)
+
+## porównanie proporcji w zależności od samego wieku
+
+a <- izolacja.szpital%>%
+  filter(izolacja=="samoizolacja")%>%
+  group_by(person_age_group)%>%
+  summarise(
+    liczba  = sum(new_confirm)
+  ) %>%
+  filter(person_age_group!="b.d.")
+
+b <- izolacja.szpital%>%
+  filter(izolacja=="szpital")%>%
+  group_by(person_age_group)%>%
+  summarise(
+    liczba  = sum(new_confirm)
+  )%>%
+  filter(person_age_group!="b.d.")
+
+
+p1 <- ggplot(a, aes(x="", y=liczba, fill=person_age_group)) +
+  geom_col() +
+  #geom_label_repel(aes(label = paste0(round(zarazeni/sum(zarazeni)*100), "%")), 
+  #position = position_stack(vjust = 0.5), show.legend = FALSE, color="white",fontface='bold')+
+  coord_polar(theta = "y") + 
+  scale_fill_manual(values = kolory)+
+  labs(fill="", y="",x="", title = "samoizolacja", caption = "")+
+  theme_bw()+
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        panel.grid=element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+
+p2 <- ggplot(b, aes(x="", y=liczba, fill=person_age_group)) +
+  geom_col() +
+  #geom_label_repel(aes(label = paste0(round(zarazeni/sum(zarazeni)*100), "%")), 
+  #position = position_stack(vjust = 0.5), show.legend = FALSE, color="white",fontface='bold')+
+  coord_polar(theta = "y") + 
+  scale_fill_manual(values = kolory)+
+  labs(fill="", y="",x="", title = "szpital", caption = "")+
+  theme_bw()+
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        panel.grid=element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+
+grid.arrange(p1,p2, ncol=2)
+
+# dzienne zachorowania medykóW
+a <- szpitale.medycy %>%
+  filter(data==max(data), medycy=="tak")
+
+a <- szpitale.medycy%>%
+  filter(medycy=="tak")%>%
+  group_by(Obwód)%>%
+  summarise(
+    suma=sum(new_death)
+  )
+
+a <- szpitale2%>%
+  filter(is_medical_worker=="Так")%>%
+  group_by(registration_area, person_age_group, add_conditions)%>%
+  summarise(
+    suma=sum(new_death)
+  )%>%
+  filter(suma>0)%>%
+  group_by(person_age_group, add_conditions)%>%
+  summarise(
+    suma=sum(suma)
+  )
+ggplot(a)+
+  geom_col(aes(x=person_age_group, y=suma, fill=add_conditions), position = "dodge")+
+  #facet_wrap(~add_conditions)+
+  coord_flip()

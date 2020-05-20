@@ -1,5 +1,4 @@
-library(tidyr)
-library(dplyr)
+library(tidyverse)
 library(lubridate)
 library(readxl)
 library(httr)
@@ -44,11 +43,22 @@ GET(url, authenticate(":", ":", type="ntlm"), write_disk(tf <- tempfile(fileext 
 covid.ECDC <- read_excel(tf)
 rm(tf, url)
 
+#coś przestało działać, próbujemy innego rozwiązania
+covid.ECD <- read_xlsx(path="https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx")
+
+# jeszcze inne rozwiązanie
+
+#these libraries need to be loaded
+library(utils)
+#read the Dataset sheet into “R”. The dataset will be called "data".
+data <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
+# działa, ale trzeba poprawić skrypt w części z datą.
+
 #obrabiamy dane 
 
-covid.ECDC <- covid.ECDC %>%
+covid.ECDC <- data %>%
   rename(data=1, countries=7, ISO2=8, ISO3= 9, population=10) %>%
-  mutate(data=as.Date(data))%>%
+  mutate(data=dmy(data))%>%
   mutate(countries = gsub("_", " ", countries))%>%
   mutate(population = if_else(countries=="CANADA", as.numeric(paste("37058856")),
                               as.numeric(paste(population))))  %>%

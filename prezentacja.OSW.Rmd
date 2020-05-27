@@ -416,8 +416,7 @@ p1 <- ggplot() +
   coord_map(projection = "mercator") + 
   scale_fill_gradient(low = "white", high = "darkgreen", labels = percent_format(accuracy = 1)) +
   labs(fill= "", title = "Odsetek wyleczonych przypadków",
-       subtitle =  paste0( "stan na ", format(as.Date(a$data), "%d/%m/%Y"), ", godz. 9.00"),
-       caption = "Źródło - Ministerstwo Zdrowia Ukrainy") +
+       subtitle =  paste0( "stan na ", format(as.Date(a$data), "%d/%m/%Y"))) +
   geom_label(data=a, aes(x=long, y=lat), label=paste0(round(a$wyzdrowienia*100,1), "%"), size=3) +
   theme_bw()+
   theme(axis.ticks = element_blank(), panel.border = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(),
@@ -435,7 +434,7 @@ a <- obwody %>%
 ```
 
 ```{r fig.width=10, fig.height=10}
-#png("./wykresy/odsetek wyleczonych.aktywni.wyleczeni.20.maja.png", units="in", width=10, height=10, res=600)
+#png("./wykresy/odsetek wyleczonych.aktywni.wyleczeni.25.maja.png", units="in", width=10, height=10, res=600)
 ggplot(a, aes(x=data, y=liczba, color=skumulowane))+
   geom_path(size=2)+
   facet_wrap(~Obwód, scales="free_y")+
@@ -466,8 +465,8 @@ p2 <- ggplot(a, aes(x=data, y=liczba, color=skumulowane))+
   theme(legend.position = "top", plot.title = element_text(hjust = 0.5))
 ```
 ```{r include=F}
-png("./wykresy/odsetek wyleczonych.aktywni.wyleczeni.20.maja.porownanie.png", units="in", width=20, height=10, res=300)
-grid.arrange(p2, p1, ncol=2)
+png(paste0("./wykresy/odsetek wyleczonych.aktywni.wyleczeni.",Sys.Date(),".porownanie.png"), units="in", width=20, height=10, res=300)
+grid.arrange(p1, p2, ncol=2)
 dev.off()
 ```
 
@@ -475,7 +474,7 @@ dev.off()
 ***
 
 
-```{r}
+```{r dynamika zachorowań w wybranych obwodach}
 # dynamika zachorowań w wybranych obwodach
 a <- obwody %>%
   group_by(data, Obwód)%>%
@@ -540,7 +539,7 @@ ggplot(a, aes(x=dzien, y=proc.zach, color=Obwód))+
 
 ***
 
-```{r}
+```{r średnia krocząca dla UA}
 #średnia krocząca dla UA
 a <- obwody %>%
   ungroup()%>%

@@ -3,7 +3,9 @@ library(lubridate)
 library(readxl)
 library(httr)
 
-#################################################################################
+
+# pobór long i lat --------------------------------------------------------
+
 # bierzemy nazwy i long lat z Hopkinsa
 load(file = "E:/R/COVID-19/covid2.Rda")
 
@@ -25,28 +27,32 @@ kraje <- kraje %>%
 
 rm(oczyszczone, kraje.filtr, covid)
 
-###################################################################################
+
+# stary kod ---------------------------------------------------------------
 
 # fragment skryptu stąd 
 # https://www.ecdc.europa.eu/en/publications-data/download-todays-data-geographic-distribution-covid-19-cases-worldwide
 
 #create the URL where the dataset is stored with automatic updates every day
 
-url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx", sep = "")
+#url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx", sep = "")
 
 #download the dataset from the website to a local temporary file
 
-GET(url, authenticate(":", ":", type="ntlm"), write_disk(tf <- tempfile(fileext = ".xlsx")))
+#GET(url, authenticate(":", ":", type="ntlm"), write_disk(tf <- tempfile(fileext = ".xlsx")))
 
 #read the Dataset sheet into “R”
 
-covid.ECDC <- read_excel(tf)
-rm(tf, url)
+#covid.ECDC <- read_excel(tf)
+#rm(tf, url)
 
 #coś przestało działać, próbujemy innego rozwiązania
-covid.ECD <- read_xlsx(path="https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx")
+#covid.ECD <- read_xlsx(path="https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx")
 
 # jeszcze inne rozwiązanie
+
+
+# aktualny kod do poboru danych -------------------------------------------
 
 #these libraries need to be loaded
 library(utils)

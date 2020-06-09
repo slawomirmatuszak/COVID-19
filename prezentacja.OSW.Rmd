@@ -85,7 +85,7 @@ c <- obwody %>%
 
 ### Ogólna sytuacja na Ukrainie
 
-Wedug danych Ministerstwa Zdrowia  z `r unique(format(a$data2, "%d"))` `r if_else(unique(format(a$data2, "%B"))=="marzec", paste("marca"),if_else(unique(format(a$data2, "%B"))=="maj", paste("maja"), paste("kwietnia"))) ` `r unique(format(a$data2, "%Y"))` z godziny 9.00 od początku epidemii na Ukrainie zanotowano w sumie **`r as.integer(sum(a$liczba))`** przypadków zarażenia wirusem SARS-CoV-2 , z czego **`r sum(b$liczba)`** osób zmarło i **`r sum(c$liczba)`** się wyleczyło.  
+Wedug danych Ministerstwa Zdrowia  z `r unique(format(a$data2, "%d"))` `r if_else(unique(format(a$data2, "%B"))=="marzec", paste("marca"),if_else(unique(format(a$data2, "%B"))=="maj", paste("maja"), paste("kwietnia"))) ` `r unique(format(a$data2, "%Y"))` z godziny 9.00 od początku epidemii na Ukrainie zanotowano w sumie **`r format(as.integer(sum(a$liczba)), big.mark = " ")`** przypadków zarażenia wirusem SARS-CoV-2 , z czego **`r sum(b$liczba)`** osób zmarło i **`r format(sum(c$liczba), big.mark=" ")`** się wyleczyło.  
 
 
 ```{r message=FALSE, include=FALSE}

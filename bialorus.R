@@ -217,3 +217,101 @@ ggplot(filter(a), aes(x=data, y=cases))+
   theme_bw()+
   theme(legend.position = "top", plot.caption = element_text( size = 8), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),
         plot.background = element_rect(colour = "grey", size = 0.5))
+
+
+# odchylenie standardowe dla Białorusi ------------------------------------
+library(scales)
+
+bialorus <- covid.ECDC %>%
+  filter(Państwo=="Białoruś")%>%
+  filter(data>max(data-14))
+
+sd(bialorus$cases)/mean(bialorus$cases)
+
+PL <- covid.ECDC %>%
+  filter(Państwo=="Polska")%>%
+  filter(data>max(data-14))
+
+(sd(PL$cases)/mean(PL$cases))*100
+
+#porównanie roznych państw
+kraje <- covid.ECDC %>%
+  filter(data>max(data-7))%>%
+  filter(population>1e6)%>%
+  mutate(zach.100 = cases*100000/population)%>%
+  filter(Kontynenty=="Europa")%>%
+  group_by(Państwo)%>%
+  summarise(
+    mean.zach.100 = mean(zach.100)
+  )%>%
+  filter(mean.zach.100>0.9)%>%
+  select(Państwo)%>%
+  unique()%>%
+  ungroup()%>%
+  pull()
+
+odchylenie <- covid.ECDC %>%
+  filter(data>max(data-7))%>%
+  mutate(zach.100 = cases*100000/population)%>%
+  filter(Kontynenty=="Europa")%>%
+  filter(Państwo %in%kraje)%>%
+  group_by(Państwo)%>%
+  filter(population>1e6)%>%
+  summarise(
+    srednia=mean(cases),
+    odchylenie = sd(cases)
+  )%>%
+  mutate(odchylenie.proc = odchylenie/srednia)%>%
+  arrange(odchylenie.proc)%>%
+  filter(odchylenie.proc>0)
+
+ggplot(odchylenie, aes(x=reorder(Państwo, odchylenie.proc), y=odchylenie.proc))+
+  geom_col()+
+  coord_flip()+
+  scale_y_continuous(labels = percent) 
+
+library(plotly)
+ggplotly(p1)
+
+#porównanie roznych państw w szczycie epidemii
+odchylenie.szczyt <- covid.ECDC %>%
+  filter(Kontynenty=="Europa")%>%
+  filter(population>1e6)%>%
+  mutate(srednia.ruchoma = zoo::rollmean(cases, k=7, fill=NA, align="right"))%>%
+  group_by(Państwo)%>%
+  mutate(test = srednia.ruchoma==max(srednia.ruchoma, na.rm = T))%>%
+  mutate(id=row_number())
+
+a <- odchylenie.szczyt %>%
+  select(data, cases, Państwo, srednia.ruchoma, test, id)%>%
+  mutate(srednia.sd = roll::roll_sd(cases,7))%>%
+  mutate(odchylenie.proc = srednia.sd/srednia.ruchoma)%>%
+  filter(id>max(id)-30)%>%
+  filter(odchylenie.proc>0)
+
+ggplot(a, aes(x=data, y=odchylenie.proc))+
+  geom_path()+
+  facet_wrap(~Państwo)
+
+# próba porównania państw w szczycie 7 dni
+odchylenie.szczyt2 <- covid.ECDC %>%
+  filter(Kontynenty=="Europa")%>%
+  filter(population>1e6)%>%
+  mutate(srednia.ruchoma = zoo::rollmean(cases, k=7, fill=NA, align="right"))%>%
+  group_by(Państwo)%>%
+  mutate(test = srednia.ruchoma==max(srednia.ruchoma, na.rm = T))%>%
+  mutate(id=row_number())%>%
+  mutate(data2 = if_else(test==TRUE, data, NULL))%>%
+  filter(data>=max(data2, na.rm = T)&data<max(data2, na.rm = T)+7)%>%
+  summarise(
+    srednia=mean(cases),
+    odchylenie = sd(cases)
+  )%>%
+  mutate(odchylenie.proc = odchylenie/srednia)%>%
+  arrange(odchylenie.proc)
+
+ggplot(odchylenie.szczyt2, aes(x=reorder(Państwo, odchylenie.proc), y=odchylenie.proc))+
+  geom_col()+
+  coord_flip()+
+  scale_y_continuous(labels = percent)+
+  theme_bw()

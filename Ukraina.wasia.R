@@ -1,71 +1,6 @@
 library(tidyverse)
 library(lubridate)
 
-
-# pobór i obróbka danych na poziomie szpitali -----------------------------
-
-szpitale2 <- read.csv("https://raw.githubusercontent.com/VasiaPiven/covid19_ua/master/covid19_by_area_type_hosp_dynamics.csv", encoding = "UTF-8")
-
-szpitale.suma <- szpitale2 %>%
-  mutate(data=ymd(zvit_date))%>%
-  group_by(person_gender, person_age_group, add_conditions)%>%
-  summarise_if(is.numeric, sum)%>%
-  ungroup()%>%
-  mutate(smiertelnosc = new_death/new_confirm)%>%
-  mutate(add_conditions = gsub("Так", "choroby współistniejące", add_conditions))%>%
-  mutate(add_conditions = gsub("Ні", "brak chorób współistniejących", add_conditions))%>%
-  mutate(person_gender = gsub("Жіноча", "kobiety", person_gender))%>%
-  mutate(person_gender = gsub("Чоловіча", "mężczyźni", person_gender))%>%
-  mutate(person_gender = gsub("Уточнюється", "b.d.", person_gender))%>%
-  mutate(person_age_group = gsub("Уточнюється", "b.d.", person_age_group))
-
-save(szpitale.suma, file = "szpitale.suma.github.Rda")
-
-# obróbka z podziałem na obwody
-
-load(file = "E:/R/COVID-19/Ukraina.dane/obwody.lista.Rda")
-obwody.lista <- obwody %>%
-  # trzeba poprawic współrzędne Kijowa, bo nie widać go na mapie
-  select(1:4,6,7)
-obwody.lista[13,1] <- 50.777435
-obwody.lista[13,2] <- 30.167475
-rm(obwody)
-
-szpitale.obwody <- szpitale2 %>%
-  mutate(izolacja= if_else(edrpou_hosp=="Самоізоляція", paste("izolacja"), paste("szpital")))%>%
-  group_by(zvit_date, registration_area, izolacja)%>%
-  summarise_if(is.numeric, funs(sum))%>%
-  rename(id=2)%>%
-  left_join(obwody.lista, by="id")%>%
-  mutate(lat = as.numeric(lat), long = as.numeric(long))%>%
-  mutate(data=ymd(zvit_date))
-
-save(szpitale.obwody, file = "szpitale.obwody.Rda")
-
-#trzeba potem dodać pracowników medycznych
-load(file = "E:/R/COVID-19/Ukraina.dane/obwody.lista.Rda")
-
-obwody.lista <- obwody %>%
-  # trzeba poprawic współrzędne Kijowa, bo nie widać go na mapie
-  select(1:4,6,7)
-obwody.lista[13,1] <- 50.777435
-obwody.lista[13,2] <- 30.167475
-rm(obwody)
-
-szpitale.medycy <- szpitale2 %>%
-  mutate(izolacja= if_else(edrpou_hosp=="Самоізоляція", paste("izolacja"), paste("szpital")))%>%
-  mutate(medycy= if_else(is_medical_worker=="Так", paste("tak"), paste("nie")))%>%
-  group_by(zvit_date, registration_area, izolacja, medycy)%>%
-  summarise_if(is.numeric, sum)%>%
-  rename(id=2)%>%
-  left_join(obwody.lista, by="id")%>%
-  mutate(lat = as.numeric(lat), long = as.numeric(long))%>%
-  mutate(data=ymd(zvit_date))%>%
-  ungroup()
-
-save(szpitale.medycy, file = "szpitale.medycy.Rda")
-
-
 # miejscowości ----------------------------------------------------------
 library(rgeos)
 library(rgdal)
@@ -75,17 +10,6 @@ shp1 <- readOGR("E:/R/UA_spis/data/mapa", layer = "obwod_pl")
 #zmieniamy format danych
 shp1f <- fortify(shp1, region = "ADM1_PCODE")
 
-load(file = "E:/R/COVID-19/Ukraina.dane/obwody.lista.Rda")
-
-obwody <- obwody%>%
-  select(Obwód, id)%>%
-  rename(registration_area=id)
-
-miejscowosci <- read_csv("https://raw.githubusercontent.com/VasiaPiven/covid19_ua/master/covid19_by_settlement_actual.csv")%>%
-  left_join(obwody, by="registration_area")
-
-
-save(miejscowosci, file="miejscowosci.Rda")
 load(file = "E:/R/COVID-19/miejscowosci.Rda")
 
 a <- miejscowosci%>%
@@ -163,9 +87,89 @@ ggplot(a) +
 
 miejscowosci.timeline <- read_csv("https://raw.githubusercontent.com/VasiaPiven/covid19_ua/master/covid19_by_settlement_dynamics.csv")
 
+# zmiana Dniepropiertowska
+Dnipro <- miejscowosci.timeline %>%
+  filter(registration_area=="Дніпропетровська")%>%
+  filter(zvit_date==min(zvit_date))%>%
+  select(registration_settlement)%>%
+  pull()
+
+# porównanie dla dużych miast
+miasta <- miejscowosci.timeline %>%
+  filter(registration_settlement %in% c("Київ", "Львів", "Харків", Dnipro, "Одеса", "Кривий Ріг", "Запоріжжя", "Миколаїв","Маріуполь", "Вінниця", "Херсон", "Полтава")) %>%
+  group_by (registration_settlement, zvit_date)%>%
+  summarise_if(is.numeric, sum)%>%
+  arrange(zvit_date)%>%
+  mutate(zach.cum=cumsum(new_confirm),
+         zgony.cum=cumsum(new_death),
+         wyleczeni.cum=cumsum(new_recover),
+         aktywni=zach.cum-(wyleczeni.cum+zgony.cum))%>%
+  mutate(nazwa = case_when(registration_settlement== "Київ" ~ "Kijów",
+                           registration_settlement==Dnipro ~"Dnipro",
+                           registration_settlement=="Львів" ~"Lwów",
+                           registration_settlement=="Харків" ~"Charków",
+                           registration_settlement=="Одеса" ~"Odessa",
+                           registration_settlement=="Кривий Ріг" ~"Krzywy Róg",
+                           registration_settlement=="Запоріжжя" ~"Zaporoże",
+                           registration_settlement=="Миколаїв" ~"Mikołajów",
+                           registration_settlement=="Вінниця" ~"Winnica",
+                           registration_settlement=="Херсон" ~"Chersoń",
+                           registration_settlement=="Полтава" ~"Połtawa",
+                           registration_settlement=="Маріуполь" ~"Mariupol"))%>%
+  mutate(ludnosc = case_when(registration_settlement== "Київ" ~ 2611370,
+                           registration_settlement==Dnipro ~ 1065008,
+                           registration_settlement=="Львів" ~ 732818,
+                           registration_settlement=="Харків" ~ 1470902,
+                           registration_settlement=="Одеса" ~ 1023049,
+                           registration_settlement=="Кривий Ріг" ~ 668980,
+                           registration_settlement=="Запоріжжя" ~ 815256,
+                           registration_settlement=="Миколаїв" ~ 514136,
+                           registration_settlement=="Вінниця" ~ 356665,
+                           registration_settlement=="Херсон" ~ 328360,
+                           registration_settlement=="Полтава" ~ 317998,
+                           registration_settlement=="Маріуполь" ~ 492176))%>%
+  mutate(zach.100.cum = zach.cum*1e5/ludnosc,
+         zach.100 = new_confirm*1e5/ludnosc,
+         srednia= zoo::rollmean(zach.100, k=7, fill=NA, align="right"),
+         aktywni.100 = aktywni*1e5/ludnosc)
+
+miasta.long <- miasta %>%
+  select(nazwa, zvit_date, registration_settlement, aktywni, wyleczeni.cum, zgony.cum)%>%
+  pivot_longer(cols = c(aktywni, wyleczeni.cum, zgony.cum), names_to = "nazwy", values_to = "liczby")%>%
+  mutate(nazwy=gsub(".cum", "", nazwy))
+
+png(paste0("./wykresy/miasta.", Sys.Date(),".png"), units="in", width=10, height=8, res=300)
+ggplot(miasta.long, aes(x=zvit_date, y=liczby, color=nazwy))+
+  geom_path(size=2)+
+  facet_wrap(~nazwa, scales = "free_y", ncol=4)+
+  scale_color_manual(values = c("aktywni"="orange", "wyleczeni"="darkgreen", "zgony"="red"))+
+  labs(x="", y="", color="")+
+  theme_bw()+
+  theme(legend.position = "top")
+dev.off()
+
+ggplot(miasta, aes(x=zvit_date, y=srednia))+
+  geom_path(size=2, color="orange")+
+  facet_wrap(~nazwa,  ncol=4)+
+  labs(x="", y="", color="")+
+  theme_bw()+
+  theme(legend.position = "top")
+
+ggplot(miasta, aes(x=zvit_date, y=zach.100.cum))+
+  geom_path(size=2, color="orange")+
+  facet_wrap(~nazwa,  ncol=4)+
+  labs(x="", y="", color="")+
+  theme_bw()+
+  theme(legend.position = "top")
+
+ggplot(miasta, aes(x=zvit_date, y=aktywni.100))+
+  geom_path(size=2, color="orange")+
+  facet_wrap(~nazwa,  scales = "free_y", ncol=4)+
+  labs(x="", y="", color="")+
+  theme_bw()+
+  theme(legend.position = "top")
 
 # miejscowości rejony -----------------------------------------------------
-
 
 load(file = "E:/R/COVID-19/miejscowosci.Rda")
 
@@ -342,3 +346,7 @@ ggplot(a, aes(x=person_age_group, y=smiertelnosc, label=smiertelnosc))+
   coord_flip()+
   scale_y_continuous(labels = percent, limits = c(0,0.1))+
   theme_bw()
+
+
+  
+  

@@ -12,6 +12,18 @@ a <- covid.ECDC%>%
   mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA, align="right"))%>%
   filter(srednia>0, population>2e5)
 
+#test na 25 przypadków
+
+test <- covid.ECDC%>%
+  filter(Kontynenty=="Europa")%>%
+  arrange(data, Państwo)%>%
+  mutate(zach.100 = cases*100000/population)%>%
+  group_by(Państwo)%>%
+  mutate(suma=zoo::rollsum(zach.100, k=14, fill=NA, align="right"))%>%
+  filter(suma>25)
+
+
+
 
 # krzywe z datą na osi x
 #png("Europa.png", units="in", width=12, height=8, res=600)
@@ -130,6 +142,7 @@ library(sf)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(ggspatial)
+library(scales)
 
 Europa <- ne_countries(scale = "medium", returnclass = "sf", continent = c("Europe", "Asia")) %>%
   rename(ISO3 = 10)%>%
@@ -197,8 +210,8 @@ ggplot(data = Europa) +
   coord_sf(xlim = c(-23, 43), ylim = c(33, 72), expand = F) +
   scale_fill_gradientn(
     colors=c("darkgreen","white","red"),
-    values=rescale(c(0,PL.wynik,10)),
-    limits=c(0,10)
+    values=rescale(c(0,PL.wynik,11)),
+    limits=c(0,11)
   )+
   geom_label(data=etykiety, aes(x=Long, y=Lat), label=paste(round(etykiety$srednia,2)), size=3) +
   #scale_fill_gradient2(low=muted("darkgreen"), high = muted("red"), mid = "white", midpoint = PL.wynik)+
@@ -362,6 +375,9 @@ ggplot(a, aes(x=reorder(Państwo, zach.100), y=zach.100))+
 
 a <- covid.ECDC%>%
   filter(Państwo=="Polska")%>%
+  mutate(cases = case_when(data=="2020-06-03"~ 292,
+                           data=="2020-06-04"~ 361,
+                           TRUE~as.numeric(cases))) %>%
   mutate(zach.100 = cases*100000/population)%>%
   mutate(srednia= zoo::rollmean(zach.100, k=7, fill=NA, align="right"))%>%
   mutate(srednia.nowe.przypadki= zoo::rollmean(cases, k=7, fill=NA, align="right"))
@@ -429,3 +445,9 @@ ggplot(a, aes(x=data, y=cases))+
   theme(legend.position = "top", plot.caption = element_text( size = 7), plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))
 
 dev.off()
+
+# test funkcji ------------------------------------------------------------
+
+commas <- function(x){
+  format(x, big.mark = " ", decimal.mark = ",", digits = 0, scientific = F)
+}
